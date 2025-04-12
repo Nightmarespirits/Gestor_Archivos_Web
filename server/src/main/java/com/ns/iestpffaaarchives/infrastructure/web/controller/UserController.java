@@ -2,8 +2,11 @@ package com.ns.iestpffaaarchives.infrastructure.web.controller;
 
 import com.ns.iestpffaaarchives.application.service.UserService;
 import com.ns.iestpffaaarchives.domain.entity.User;
+import com.ns.iestpffaaarchives.infrastructure.web.dto.UserDTO;
+import com.ns.iestpffaaarchives.infrastructure.web.dto.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -11,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
+// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class UserController {
 
     private final UserService userService;
@@ -22,20 +25,21 @@ public class UserController {
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<User> users = userService.getAllUsers();
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(UserMapper.toDTOList(users));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
         Optional<User> user = userService.getUserById(id);
-        return user.map(ResponseEntity::ok)
+        return user.map(u -> ResponseEntity.ok(UserMapper.toDTO(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         Optional<User> userOptional = userService.getUserById(id);
         
         if (userOptional.isPresent()) {
@@ -52,7 +56,7 @@ public class UserController {
             }
             
             User updatedUser = userService.updateUser(user);
-            return ResponseEntity.ok(updatedUser);
+            return ResponseEntity.ok(UserMapper.toDTO(updatedUser));
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -71,9 +75,9 @@ public class UserController {
     }
     
     @GetMapping("/username/{username}")
-    public ResponseEntity<User> getUserByUsername(@PathVariable String username) {
+    public ResponseEntity<UserDTO> getUserByUsername(@PathVariable String username) {
         Optional<User> user = userService.getUserByUsername(username);
-        return user.map(ResponseEntity::ok)
+        return user.map(u -> ResponseEntity.ok(UserMapper.toDTO(u)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }

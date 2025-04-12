@@ -30,7 +30,8 @@ Base URL: `/api/auth`
     "username": "string",
     "password": "string",
     "email": "string",
-    "fullName": "string"
+    "fullName": "string",
+    "roleId": 1
   }
   ```
 - **Respuesta Exitosa** (201 Created):
@@ -41,12 +42,18 @@ Base URL: `/api/auth`
     "email": "string",
     "fullName": "string",
     "status": true,
+    "role": {
+      "id": 1,
+      "name": "string"
+    },
     "createdAt": "2025-03-26T18:00:00"
   }
   ```
 - **Respuestas de Error**:
   - 400 Bad Request: "Error: El nombre de usuario ya está en uso"
   - 400 Bad Request: "Error: El correo electrónico ya está en uso"
+  - 400 Bad Request: "Error: El rol especificado no existe"
+  - 500 Internal Server Error: "Error al registrar el usuario: {mensaje de error}"
 
 #### Inicio de Sesión
 - **Endpoint**: `POST /api/auth/login`
@@ -65,7 +72,11 @@ Base URL: `/api/auth`
     "id": 1,
     "username": "string",
     "email": "string",
-    "fullName": "string"
+    "fullName": "string",
+    "role": {
+      "id": 1,
+      "name": "string"
+    }
   }
   ```
 - **Respuestas de Error**:
@@ -80,6 +91,7 @@ Base URL: `/api/users`
 #### Obtener Todos los Usuarios
 - **Endpoint**: `GET /api/users`
 - **Descripción**: Obtiene la lista de todos los usuarios
+- **Acceso**: Solo usuarios con rol ADMIN
 - **Respuesta Exitosa** (200 OK):
   ```json
   [
@@ -97,6 +109,8 @@ Base URL: `/api/users`
     }
   ]
   ```
+- **Respuestas de Error**:
+  - 403 Forbidden: No tienes permisos para acceder a este recurso
 
 #### Obtener Usuario por ID
 - **Endpoint**: `GET /api/users/{id}`
@@ -155,10 +169,7 @@ Base URL: `/api/users`
     "fullName": "string",
     "email": "string",
     "status": true,
-    "role": {
-      "id": 1,
-      "name": "string"
-    }
+    "roleId": 1
   }
   ```
 - **Respuesta Exitosa** (200 OK):

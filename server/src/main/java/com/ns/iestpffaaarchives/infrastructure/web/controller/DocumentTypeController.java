@@ -57,7 +57,7 @@ class DocumentTypeService {
 
 @RestController
 @RequestMapping("/api/document-types")
-@CrossOrigin(origins = "*")
+// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class DocumentTypeController {
 
     private final DocumentTypeService documentTypeService;

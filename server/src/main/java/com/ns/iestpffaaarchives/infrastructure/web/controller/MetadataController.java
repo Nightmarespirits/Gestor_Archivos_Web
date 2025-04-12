@@ -64,7 +64,7 @@ class MetadataService {
 
 @RestController
 @RequestMapping("/api/metadata")
-@CrossOrigin(origins = "*")
+// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class MetadataController {
 
     private final MetadataService metadataService;

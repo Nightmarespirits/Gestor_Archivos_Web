@@ -1,0 +1,4 @@
+1.My project API is on folder /server and its java with maven project adn spring-boot
+2.All the frontend is in the ./ root directory project, it's a vite vuejs, vue router, pinia store
+3. The API documentation is in the /server/DOCUMENTATION.md
+4. The global project documentation is int the ./CONTRIBUTING.md

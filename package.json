@@ -1,5 +1,5 @@
 {
-  "name": "web_archivo_iestpffaa",
+  "name": "archivo_iestpffaa",
   "private": true,
   "type": "module",
   "version": "0.0.0",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@mdi/font": "7.4.47",
+    "pinia": "^2.1.7",
     "roboto-fontface": "*",
     "vue": "^3.4.31",
     "vuetify": "^3.6.14"
@@ -24,8 +25,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.4.0",
     "eslint-plugin-vue": "^9.30.0",
-    "pinia": "^2.1.7",
-    "sass": "1.77.8",
+    "sass": "^1.86.3",
     "sass-embedded": "^1.77.8",
     "unplugin-auto-import": "^0.17.6",
     "unplugin-fonts": "^1.1.1",

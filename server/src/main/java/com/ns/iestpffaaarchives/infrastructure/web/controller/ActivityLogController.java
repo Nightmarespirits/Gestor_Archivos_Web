@@ -76,7 +76,7 @@ class ActivityLogService {
 
 @RestController
 @RequestMapping("/api/activity-logs")
-@CrossOrigin(origins = "*")
+// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class ActivityLogController {
 
     private final ActivityLogService activityLogService;

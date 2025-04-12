@@ -62,7 +62,7 @@ class TagService {
 
 @RestController
 @RequestMapping("/api/tags")
-@CrossOrigin(origins = "*")
+// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class TagController {
 
     private final TagService tagService;

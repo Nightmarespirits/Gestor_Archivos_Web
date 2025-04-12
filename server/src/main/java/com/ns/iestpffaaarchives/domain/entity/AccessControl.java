@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "access_control")
@@ -16,18 +17,19 @@ public class AccessControl {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "document_id")
     private Document document;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @Column(name = "access_date")
+    private LocalDateTime accessDate;
 
-    @ManyToOne
-    @JoinColumn(name = "role_id")
-    private Role role;
+    @Column(name = "user_id")
+    private Long userId;
 
-    @Column(name = "permission_type", nullable = false)
-    private String permissionType;
+    @Column(name = "access_type", length = 50)
+    private String accessType;
+
+    @Column(name = "ip_address", length = 50)
+    private String ipAddress;
 }
