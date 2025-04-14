@@ -1,23 +1,14 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vuetify from 'vite-plugin-vuetify';
-import VueRouter from 'unplugin-vue-router/vite';
 import Layouts from 'vite-plugin-vue-layouts';
 import AutoImport from 'unplugin-auto-import/vite';
 import Components from 'unplugin-vue-components/vite';
-import { VueRouterAutoImports } from 'unplugin-vue-router';
 import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    // Docs: https://github.com/posva/unplugin-vue-router
-    VueRouter({
-      routesFolder: 'src/pages', // Directorio donde están tus páginas
-      extensions: ['.vue'],
-      dts: 'src/typed-router.d.ts', // Opcional: para type safety
-    }),
-
     vue(),
 
     // Docs: https://github.com/JohnCampionJr/vite-plugin-vue-layouts
@@ -45,9 +36,8 @@ export default defineConfig({
     AutoImport({
       imports: [
         'vue',
-        VueRouterAutoImports, // Importaciones automáticas para vue-router
         {
-          'vue-router/auto': ['useLink'],
+          'vue-router': ['useRouter', 'useRoute', 'useLink'],
         },
         'pinia', // Importación automática para Pinia
       ],
@@ -59,7 +49,12 @@ export default defineConfig({
       vueTemplate: true,
     }),
   ],
-  define: { 'process.env': {} },
+  define: { 
+    'process.env': {},
+    // Añadir cualquier variable de entorno que necesites aquí
+    '__VUE_OPTIONS_API__': true,
+    '__VUE_PROD_DEVTOOLS__': false,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

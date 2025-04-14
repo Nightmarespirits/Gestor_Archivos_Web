@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { useAuthStore } from '@/store/auth'; // Importar el store de autenticación
-import { debugApiCall, createAuthHeaders } from '@/utils/apiDebug'; // Importar utilidades de depuración
+import { useAuthStore } from '@/store/auth';
 
 // Define la URL base de tu API
-const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:8080/api';
 
 export const useDocumentsStore = defineStore('documents', () => {
   // Estado
@@ -26,178 +25,125 @@ export const useDocumentsStore = defineStore('documents', () => {
   // Función para obtener los headers con autenticación
   function getAuthHeaders(isFormData = false) {
     const authStore = useAuthStore();
-    const headers = createAuthHeaders(authStore, isFormData);
+    const headers = {};
     
-    // Depuración
-    console.log('Token en el store:', authStore.token);
-    console.log('Usuario en el store:', authStore.user);
+    if (authStore.token) {
+      headers['Authorization'] = `Bearer ${authStore.token}`;
+    }
+    
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+      headers['Accept'] = 'application/json';
+    }
     
     return headers;
+  }
+
+  // Función utilitaria para manejar respuestas fetch con mejor manejo de errores
+  async function handleFetchResponse(response) {
+    if (!response.ok) {
+      // Intentamos leer el cuerpo de error como JSON primero
+      try {
+        const errorData = await response.json();
+        throw { status: response.status, data: errorData };
+      } catch (parseError) {
+        // Si no es JSON, obtenemos el texto
+        try {
+          const errorText = await response.text();
+          // Verificar si es una respuesta HTML (indicador de que estamos apuntando al lugar equivocado)
+          if (errorText.includes('<!DOCTYPE html>')) {
+            console.error('Recibiendo HTML en lugar de JSON. Verificar URL de API:', API_BASE_URL);
+            throw { status: response.status, data: 'Error de conexión con la API. Posible URL incorrecta.' };
+          }
+          throw { status: response.status, data: errorText || response.statusText };
+        } catch (textError) {
+          // Si todo falla, usamos el statusText
+          throw { status: response.status, data: response.statusText };
+        }
+      }
+    }
+    return response.json();
+  }
+
+  // Funciones utilitarias para peticiones API
+  async function fetchApi(endpoint, options = {}) {
+    try {
+      loading.value = true;
+      error.value = null;
+      
+      const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+      const config = {
+        method: options.method || 'GET',
+        headers: getAuthHeaders(options.isFormData),
+      };
+      
+      // Si hay un body y no es FormData, convertirlo a JSON
+      if (options.body) {
+        if (!options.isFormData) {
+          config.body = JSON.stringify(options.body);
+        } else {
+          config.body = options.body;
+        }
+      }
+      
+      const response = await fetch(url, config);
+      
+      // Si la respuesta es 204 No Content, devolver true
+      if (response.status === 204) {
+        return true;
+      }
+      
+      return await handleFetchResponse(response);
+    } catch (err) {
+      error.value = err.message || (err.data ? JSON.stringify(err.data) : 'Error en la solicitud');
+      console.error(`Error en solicitud a ${endpoint}:`, err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
   }
 
   // Acciones
   // 1. Obtener todos los documentos
   async function fetchAllDocuments() {
-    const authStore = useAuthStore();
-    try {
-      loading.value = true;
-      const headers = getAuthHeaders();
-      
-      // Debug info
-      debugApiCall(`${API_BASE_URL}/documents`, headers, authStore);
-      
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        headers,
-        credentials: 'include' // Incluir cookies si el backend usa autenticación basada en cookies
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Error ${response.status}: ${response.statusText || errorText}`);
-      }
-      
-      documents.value = await response.json();
-      return documents.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error al obtener documentos:', err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    documents.value = await fetchApi('/documents');
+    return documents.value;
   }
 
   // 2. Obtener documento por ID
   async function fetchDocumentById(id) {
-    const authStore = useAuthStore();
-    try {
-      loading.value = true;
-      const headers = getAuthHeaders();
-      
-      // Debug info
-      debugApiCall(`${API_BASE_URL}/documents/${id}`, headers, authStore);
-      
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        headers,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      currentDocument.value = await response.json();
-      return currentDocument.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al obtener documento con ID ${id}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    currentDocument.value = await fetchApi(`/documents/${id}`);
+    return currentDocument.value;
   }
 
   // 3. Buscar documentos por título
   async function searchDocumentsByTitle(title) {
-    const authStore = useAuthStore();
-    try {
-      loading.value = true;
-      const headers = getAuthHeaders();
-      
-      // Debug info
-      debugApiCall(`${API_BASE_URL}/documents/search?title=${title}`, headers, authStore);
-      
-      const response = await fetch(`${API_BASE_URL}/documents/search?title=${encodeURIComponent(title)}`, {
-        headers,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      documents.value = await response.json();
-      return documents.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error al buscar documentos por título:', err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    documents.value = await fetchApi(`/documents/search?title=${encodeURIComponent(title)}`);
+    return documents.value;
   }
 
   // 4. Obtener documentos por etiqueta
   async function fetchDocumentsByTag(tagName) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/tag/${encodeURIComponent(tagName)}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      documents.value = await response.json();
-      return documents.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al obtener documentos con etiqueta ${tagName}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    documents.value = await fetchApi(`/documents/tag/${encodeURIComponent(tagName)}`);
+    return documents.value;
   }
 
   // 5. Obtener documentos por autor
   async function fetchDocumentsByAuthor(authorId) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/author/${authorId}`, {
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      documents.value = await response.json();
-      return documents.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al obtener documentos del autor ${authorId}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    documents.value = await fetchApi(`/documents/author/${authorId}`);
+    return documents.value;
   }
 
   // 6. Crear documento
   async function createDocument(formData) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        method: 'POST',
-        headers: getAuthHeaders(true), // true porque es FormData
-        body: formData, // FormData para subir archivos
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const newDocument = await response.json();
-      documents.value.push(newDocument);
-      return newDocument;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error al crear documento:', err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    const newDocument = await fetchApi('/documents', {
+      method: 'POST',
+      body: formData,
+      isFormData: true
+    });
+    
+    documents.value.push(newDocument);
+    return newDocument;
   }
 
   // 7. Descargar documento
@@ -208,161 +154,65 @@ export const useDocumentsStore = defineStore('documents', () => {
 
   // 8. Actualizar documento
   async function updateDocument(id, documentData) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(documentData),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const updatedDocument = await response.json();
-      
-      // Actualizar en la lista si existe
-      const index = documents.value.findIndex(doc => doc.id === updatedDocument.id);
-      if (index !== -1) {
-        documents.value[index] = updatedDocument;
-      }
-      
-      // Actualizar documento actual si es el mismo
-      if (currentDocument.value && currentDocument.value.id === updatedDocument.id) {
-        currentDocument.value = updatedDocument;
-      }
-      
-      return updatedDocument;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al actualizar documento con ID ${id}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
+    const updatedDocument = await fetchApi(`/documents/${id}`, {
+      method: 'PUT',
+      body: documentData
+    });
+    
+    // Actualizar en la lista si existe
+    const index = documents.value.findIndex(doc => doc.id === updatedDocument.id);
+    if (index !== -1) {
+      documents.value[index] = updatedDocument;
     }
+    
+    // Actualizar documento actual si es el mismo
+    if (currentDocument.value && currentDocument.value.id === updatedDocument.id) {
+      currentDocument.value = updatedDocument;
+    }
+    
+    return updatedDocument;
   }
 
   // 9. Eliminar documento (soft delete)
   async function deleteDocument(id) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      // Eliminar de la lista local
-      documents.value = documents.value.filter(doc => doc.id !== id);
-      
-      // Limpiar documento actual si es el mismo
-      if (currentDocument.value && currentDocument.value.id === id) {
-        currentDocument.value = null;
-      }
-      
-      return true;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al eliminar documento con ID ${id}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
+    await fetchApi(`/documents/${id}`, { method: 'DELETE' });
+    
+    // Eliminar de la lista local
+    documents.value = documents.value.filter(doc => doc.id !== id);
+    
+    // Limpiar documento actual si es el mismo
+    if (currentDocument.value && currentDocument.value.id === id) {
+      currentDocument.value = null;
     }
+    
+    return true;
   }
 
   // 10. Eliminar documento permanentemente
   async function deleteDocumentPermanently(id) {
-    try {
-      loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/permanent/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      // Eliminar de la lista local
-      documents.value = documents.value.filter(doc => doc.id !== id);
-      
-      // Limpiar documento actual si es el mismo
-      if (currentDocument.value && currentDocument.value.id === id) {
-        currentDocument.value = null;
-      }
-      
-      return true;
-    } catch (err) {
-      error.value = err.message;
-      console.error(`Error al eliminar permanentemente documento con ID ${id}:`, err);
-      throw err;
-    } finally {
-      loading.value = false;
+    await fetchApi(`/documents/permanent/${id}`, { method: 'DELETE' });
+    
+    // Eliminar de la lista local
+    documents.value = documents.value.filter(doc => doc.id !== id);
+    
+    // Limpiar documento actual si es el mismo
+    if (currentDocument.value && currentDocument.value.id === id) {
+      currentDocument.value = null;
     }
+    
+    return true;
   }
 
   // 11. Obtener todos los tipos de documentos
   async function fetchDocumentTypes() {
-    const authStore = useAuthStore();
-    try {
-      loading.value = true;
-      const headers = getAuthHeaders();
-      
-      // Debug info
-      debugApiCall(`${API_BASE_URL}/document-types`, headers, authStore);
-      
-      const response = await fetch(`${API_BASE_URL}/document-types`, {
-        headers,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      documentTypes.value = await response.json();
-      return documentTypes.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error al obtener tipos de documentos:', err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    documentTypes.value = await fetchApi('/document-types');
+    return documentTypes.value;
   }
 
   // 12. Obtener todas las etiquetas
   async function fetchTags() {
-    const authStore = useAuthStore();
-    try {
-      loading.value = true;
-      const headers = getAuthHeaders();
-      
-      // Debug info
-      debugApiCall(`${API_BASE_URL}/tags`, headers, authStore);
-      
-      const response = await fetch(`${API_BASE_URL}/tags`, {
-        headers,
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      tags.value = await response.json();
-      return tags.value;
-    } catch (err) {
-      error.value = err.message;
-      console.error('Error al obtener etiquetas:', err);
-      throw err;
-    } finally {
-      loading.value = false;
-    }
+    tags.value = await fetchApi('/tags');
+    return tags.value;
   }
 
   // Limpiar errores

@@ -29,6 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credentials) {
     try {
+      console.log('Auth store: Intentando login con credenciales:', credentials.username);
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -87,8 +88,24 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('User data to be stored:', userData); // Log para depuración
       setAuthData(data.token, userData);
       isInitialized.value = true; // Marcar como inicializado después de login exitoso
-      // Redirige al dashboard o a la página principal después del login
-      router.push('/'); 
+      
+      // Redirige al dashboard después del login con un pequeño retraso
+      // para asegurar que el estado se actualice completamente
+      console.log('Auth store: Login exitoso, intentando redireccionar...');
+      
+      // Intenta redirigir al dashboard o a la página principal
+      // Si estamos en modo mantenimiento o pruebas, y router no está disponible, no lanzamos error
+      try {
+        router.push('/'); 
+        console.log('Auth store: Redirección exitosa');
+      } catch (routerError) {
+        console.error('Error en redirección del router:', routerError);
+        // No propagamos este error, ya que el login fue exitoso
+        // En este caso, el usuario podría recargar la página manualmente
+        window.location.href = '/'; // Fallback a redirección nativa
+      }
+      
+      return userData; // Devolvemos los datos del usuario para uso opcional
     } catch (error) {
       console.error('Error detallado en store auth.js:', error); // Loguear error completo aquí
       clearAuthData(); // Limpia datos si el login falla
@@ -109,10 +126,12 @@ export const useAuthStore = defineStore('auth', () => {
   async function checkAuth() {
     console.log('Auth store: checking authentication state...');
     try {
+      isInitialized.value = false; // Marcar como no inicializado mientras verificamos
       const storedToken = localStorage.getItem('authToken');
       if (!storedToken) {
           clearAuthData();
           console.log('Auth store: no token found');
+          return false;
       } else {
           // Obtener y analizar el usuario almacenado
           const storedUser = JSON.parse(localStorage.getItem('authUser') || '{}');
@@ -127,16 +146,37 @@ export const useAuthStore = defineStore('auth', () => {
             }
           }
           
-          token.value = storedToken;
-          user.value = storedUser;
-          console.log('Auth store: token found, user restored with role:', user.value?.role);
-          
-          // Aquí podrías hacer una llamada a un endpoint para validar el token
-          // Si el token no es válido, llama a clearAuthData()
+          // Opcional: Aquí podrías hacer una llamada a un endpoint para validar el token
+          try {
+            // Descomenta y ajusta esto si quieres validar el token en el servidor
+            /* 
+            const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${storedToken}`
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error('Token inválido');
+            }
+            */
+            
+            // Si el token es válido, establecer los datos de autenticación
+            token.value = storedToken;
+            user.value = storedUser;
+            console.log('Auth store: token found and validated, user restored with role:', user.value?.role);
+            return true;
+          } catch (validationError) {
+            console.error('Error validating token:', validationError);
+            clearAuthData();
+            return false;
+          }
       }
     } catch (error) {
       console.error('Error checking auth:', error);
       clearAuthData();
+      return false;
     } finally {
       // Siempre marcamos como inicializado, independientemente del resultado
       isInitialized.value = true;

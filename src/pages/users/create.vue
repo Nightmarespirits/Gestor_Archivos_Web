@@ -63,7 +63,7 @@
                   <v-select
                     v-model="user.roleId"
                     :items="roles"
-                    item-title="name"
+                    item-title="displayName"
                     item-value="id"
                     label="Rol"
                     :rules="[v => !!v || 'Rol es obligatorio']"
@@ -146,8 +146,23 @@ const snackbar = ref({
 // Verificar permisos y cargar datos al montar el componente
 onMounted(async () => {
   try {
+    // Obtener el rol del usuario
+    const userRoleObj = authStore.user?.role;
+    console.log('Rol del usuario en create.vue:', userRoleObj);
+    
+    // Extraer el nombre del rol, considerando diferentes estructuras posibles
+    let userRole = '';
+    if (typeof userRoleObj === 'string') {
+      userRole = userRoleObj;
+    } else if (userRoleObj && typeof userRoleObj === 'object') {
+      userRole = userRoleObj.name || userRoleObj.roleName || '';
+    }
+    
+    // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
+    const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
+    
     // Verificar que el usuario es administrador
-    if (authStore.user?.role?.name !== 'Administrador') {
+    if (normalizedUserRole !== 'ADMIN' && normalizedUserRole !== 'ADMINISTRADOR') {
       showSnackbar('No tienes permisos para acceder a esta página', 'error');
       router.push('/unauthorized');
       return;
@@ -164,17 +179,20 @@ onMounted(async () => {
 async function loadRoles() {
   try {
     console.log('Cargando roles disponibles...');
-    roles.value = await usersStore.fetchRoles();
-    console.log('Roles cargados:', roles.value);
+    const rolesData = await usersStore.fetchRoles();
+    console.log('Roles cargados desde API:', rolesData);
+    
+    // Añadir displayName para mostrar en el select con formato mejor
+    roles.value = rolesData.map(role => ({
+      ...role,
+      displayName: role.name.charAt(0).toUpperCase() + role.name.slice(1).toLowerCase() + 
+                  (role.description ? ` - ${role.description}` : '')
+    }));
+    
+    console.log('Roles procesados para mostrar:', roles.value);
   } catch (err) {
     console.error('Error al cargar roles:', err);
     showSnackbar(`Error al cargar roles: ${err.message}`, 'error');
-    
-    // Usar roles por defecto en caso de error
-    roles.value = [
-      { id: 1, name: 'ADMIN' },
-      { id: 2, name: 'Usuario' }
-    ];
   }
 }
 

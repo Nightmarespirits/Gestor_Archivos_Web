@@ -71,7 +71,7 @@
                   variant="text"
                   color="primary"
                   v-bind="props"
-                  :to="`/users/${item.id}/edit`"
+                  @click="navigateToEdit(item)"
                   :disabled="usersStore.loading"
                 >
                   <v-icon>mdi-pencil</v-icon>
@@ -79,7 +79,7 @@
               </template>
             </v-tooltip>
             
-            <v-tooltip text="Cambiar estado" location="top">
+            <v-tooltip :text="item.status ? 'Desactivar' : 'Activar'" location="top">
               <template v-slot:activator="{ props }">
                 <v-btn
                   icon
@@ -370,22 +370,60 @@ async function loadRoles() {
   } catch (error) {
     console.error('Error al cargar roles:', error);
     // Usar roles por defecto en caso de error
-    roles.value = [
-      { id: 1, name: 'ADMIN' },
-      { id: 2, name: 'Usuario' }
-    ];
+    roles.value = [];
   }
 }
 
 // Funciones para CRUD
 function openCreateDialog() {
+  // Obtener el rol del usuario
+  const userRoleObj = authStore.user?.role;
+  console.log('Rol del usuario:', userRoleObj);
+  
+  // Extraer el nombre del rol, considerando diferentes estructuras posibles
+  let userRole = '';
+  if (typeof userRoleObj === 'string') {
+    userRole = userRoleObj;
+  } else if (userRoleObj && typeof userRoleObj === 'object') {
+    userRole = userRoleObj.name || userRoleObj.roleName || '';
+  }
+  
+  // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
+  const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
+  
   // Verificar que el usuario tiene permisos para crear usuarios
-  if (authStore.user?.role?.name === 'ADMIN') {
+  if (normalizedUserRole === 'ADMIN' || normalizedUserRole === 'ADMINISTRADOR') {
     console.log('Redirigiendo a pantalla de creación de usuario...');
     router.push('/users/create');
   } else {
     console.warn('Usuario intenta crear un usuario sin tener permisos de ADMIN');
     showSnackbar('No tienes permisos para crear usuarios', 'error');
+  }
+}
+
+function navigateToEdit(user) {
+  // Obtener el rol del usuario
+  const userRoleObj = authStore.user?.role;
+  console.log('Rol del usuario:', userRoleObj);
+  
+  // Extraer el nombre del rol, considerando diferentes estructuras posibles
+  let userRole = '';
+  if (typeof userRoleObj === 'string') {
+    userRole = userRoleObj;
+  } else if (userRoleObj && typeof userRoleObj === 'object') {
+    userRole = userRoleObj.name || userRoleObj.roleName || '';
+  }
+  
+  // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
+  const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
+  
+  // Verificar que el usuario tiene permisos para editar usuarios
+  if (normalizedUserRole === 'ADMIN' || normalizedUserRole === 'ADMINISTRADOR') {
+    console.log('Redirigiendo a pantalla de edición de usuario...');
+    router.push(`/users/${user.id}/edit`);
+  } else {
+    console.warn('Usuario intenta editar un usuario sin tener permisos de ADMIN');
+    showSnackbar('No tienes permisos para editar usuarios', 'error');
   }
 }
 

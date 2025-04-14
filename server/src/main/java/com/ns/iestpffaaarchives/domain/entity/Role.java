@@ -1,5 +1,9 @@
 package com.ns.iestpffaaarchives.domain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,5 +39,6 @@ public class Role {
         joinColumns = @JoinColumn(name = "role_id"),
         inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
+    @JsonIdentityReference(alwaysAsId = true)
     private Set<Permission> permissions = new HashSet<>();
 }

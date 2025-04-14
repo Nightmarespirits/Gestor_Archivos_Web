@@ -53,7 +53,7 @@
                   <v-select
                     v-model="user.roleId"
                     :items="roles"
-                    item-title="name"
+                    item-title="displayName"
                     item-value="id"
                     label="Rol"
                     :rules="[v => !!v || 'Rol es obligatorio']"
@@ -170,8 +170,26 @@ const snackbar = ref({
 // Verificar permisos y cargar datos al montar el componente
 onMounted(async () => {
   try {
+    // Obtener el rol del usuario
+    const userRoleObj = authStore.user?.role;
+    console.log('Rol del usuario en edit.vue:', userRoleObj);
+    
+    // Extraer el nombre del rol, considerando diferentes estructuras posibles
+    let userRole = '';
+    if (typeof userRoleObj === 'string') {
+      userRole = userRoleObj;
+    } else if (userRoleObj && typeof userRoleObj === 'object') {
+      userRole = userRoleObj.name || userRoleObj.roleName || '';
+    }
+    
+    // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
+    const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
+    
+    // Verificar si el rol del usuario es admin (considerando diferentes formatos)
+    const isAdmin = normalizedUserRole === 'ADMIN' || normalizedUserRole === 'ADMINISTRADOR';
+    
     // Verificar que el usuario es administrador
-    if (authStore.user?.role?.name !== 'Administrador') {
+    if (!isAdmin) {
       showSnackbar('No tienes permisos para acceder a esta página', 'error');
       router.push('/unauthorized');
       return;
@@ -196,35 +214,72 @@ onMounted(async () => {
 // Cargar roles disponibles
 async function loadRoles() {
   try {
-    roles.value = await usersStore.fetchRoles();
+    console.log('Cargando roles disponibles...');
+    const rolesData = await usersStore.fetchRoles();
+    console.log('Roles cargados desde API:', rolesData);
+    
+    // Añadir displayName para mostrar en el select con formato mejor
+    roles.value = rolesData.map(role => ({
+      ...role,
+      displayName: role.name.charAt(0).toUpperCase() + role.name.slice(1).toLowerCase() + 
+                  (role.description ? ` - ${role.description}` : '')
+    }));
+    
+    console.log('Roles procesados para mostrar:', roles.value);
   } catch (error) {
     console.error('Error al cargar roles:', error);
-    roles.value = [
-      { id: 1, name: 'Administrador' },
-      { id: 2, name: 'Usuario' }
-    ];
+    showSnackbar(`Error al cargar roles: ${error.message}`, 'error');
   }
 }
 
 // Cargar datos del usuario
 async function fetchUser(userId) {
   try {
+    console.log(`Intentando cargar usuario con ID ${userId}`);
     const userData = await usersStore.fetchUserById(userId);
     
     if (!userData) {
       throw new Error('No se encontró el usuario');
     }
     
+    console.log('Datos del usuario recibidos:', userData);
+    
+    // Extraer el ID del rol de manera segura
+    let roleId = null;
+    if (userData.role) {
+      if (typeof userData.role === 'object') {
+        roleId = userData.role.id;
+      } else if (typeof userData.role === 'number') {
+        roleId = userData.role;
+      }
+    } else if (userData.roleId) {
+      roleId = userData.roleId;
+    }
+    
+    // Si no se pudo determinar el roleId, usar un valor por defecto
+    if (roleId === null) {
+      console.warn('No se pudo determinar el rol del usuario, usando rol por defecto');
+      // Buscar el rol de administrador en los roles disponibles
+      const adminRole = roles.value.find(r => 
+        r.name.toUpperCase() === 'ADMIN' || 
+        r.name.toUpperCase() === 'ADMINISTRADOR'
+      );
+      roleId = adminRole ? adminRole.id : 1; // Usar 1 como fallback
+    }
+    
     user.value = {
       id: userData.id,
-      username: userData.username,
-      fullName: userData.fullName,
-      email: userData.email,
-      status: userData.status,
-      roleId: userData.role.id
+      username: userData.username || '',
+      fullName: userData.fullName || '',
+      email: userData.email || '',
+      status: userData.status !== undefined ? userData.status : true,
+      roleId: roleId
     };
+    
+    console.log('Datos del usuario procesados:', user.value);
   } catch (error) {
     console.error(`Error al cargar usuario con ID ${userId}:`, error);
+    showSnackbar(`Error al cargar usuario: ${error.message}`, 'error');
     throw error;
   }
 }
@@ -252,16 +307,31 @@ async function updateUser() {
       updateData.password = newPassword.value;
     }
     
-    // Enviar actualización
-    await usersStore.updateUser(user.value.id, updateData);
-    showSnackbar('Usuario actualizado exitosamente', 'success');
+    console.log('Enviando datos de actualización:', updateData);
     
-    // Redirigir a la lista de usuarios después de un breve retraso
-    setTimeout(() => {
-      router.push('/users');
-    }, 1500);
+    // Mostrar indicador de carga
+    loading.value = true;
+    
+    // Enviar actualización
+    try {
+      const updatedUser = await usersStore.updateUser(user.value.id, updateData);
+      console.log('Usuario actualizado correctamente:', updatedUser);
+      showSnackbar('Usuario actualizado exitosamente', 'success');
+      
+      // Redirigir a la lista de usuarios después de un breve retraso
+      setTimeout(() => {
+        router.push('/users');
+      }, 1500);
+    } catch (apiError) {
+      console.error('Error en la API al actualizar usuario:', apiError);
+      showSnackbar(`Error al actualizar usuario: ${apiError.message || 'Error desconocido'}`, 'error');
+    } finally {
+      loading.value = false;
+    }
   } catch (error) {
-    showSnackbar(`Error al actualizar usuario: ${error.message}`, 'error');
+    console.error('Error general al actualizar usuario:', error);
+    showSnackbar(`Error al actualizar usuario: ${error.message || 'Error desconocido'}`, 'error');
+    loading.value = false;
   }
 }
 

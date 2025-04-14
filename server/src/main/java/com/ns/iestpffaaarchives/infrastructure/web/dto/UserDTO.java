@@ -17,4 +17,5 @@ public class UserDTO {
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
     private RoleDTO role;
+    private Long roleId; // Campo añadido para facilitar las actualizaciones
 }

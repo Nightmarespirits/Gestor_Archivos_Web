@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
 import java.time.LocalDateTime;
 
 @Entity
@@ -28,6 +29,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "role_id")
+    @JsonIdentityReference(alwaysAsId = true)
     private Role role;
 
     @Column(name = "full_name")

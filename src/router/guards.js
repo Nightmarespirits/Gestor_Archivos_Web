@@ -7,65 +7,71 @@ export function createAuthGuard(router, piniaInstance) {
     // It's crucial to get a fresh instance of the store *inside* the guard
     // or pass the pinia instance and use it
     const authStore = useAuthStore(piniaInstance);
-    const { isAuthenticated, user, isInitialized } = storeToRefs(authStore); // Use storeToRefs for reactivity
+    // Use storeToRefs for reactivity AND get isInitialized
+    const { isAuthenticated, user, isInitialized } = storeToRefs(authStore);
+
+    console.log('[AuthGuard] Running for route:', to.path);
+    console.log('[AuthGuard] Store Initialized:', isInitialized.value);
+    console.log('[AuthGuard] Is Authenticated:', isAuthenticated.value);
+    console.log('[AuthGuard] User Data:', JSON.stringify(user.value)); // Log user data
 
     const requiresAuth = to.meta.requiresAuth;
     const requiredRole = to.meta.requiredRole;
 
-    // 1. Ensure the auth state is initialized (e.g., checked localStorage)
-    // We rely on main.js calling checkAuth before mounting
-    // If checkAuth isn't finished yet, this might still be false initially.
-    // A more robust solution might involve a loading state or delaying navigation.
-    if (!isInitialized.value && requiresAuth) {
-        console.log('Guard: Auth not initialized, attempting checkAuth...');
-        try {
-            // Attempt to re-check auth state if not initialized
-            // This assumes checkAuth updates isInitialized and isAuthenticated
-            await authStore.checkAuth();
-            console.log('Guard: checkAuth completed. Initialized:', isInitialized.value, 'Authenticated:', isAuthenticated.value);
-        } catch (error) {
-            console.error('Guard: Error during initial checkAuth:', error);
-            // Decide how to handle auth check failure - redirect to login?
-            next({ name: 'Login', query: { redirect: to.fullPath } });
-            return;
-        }
+    // Si la autenticación no se ha inicializado, permitimos continuar
+    // App.vue mostrará el spinner de carga y luego redirigirá si es necesario
+    if (!isInitialized.value) {
+      console.log('[AuthGuard] Auth store not initialized yet. App.vue will handle display.');
+      return next();
     }
 
-    // Re-evaluate after potential checkAuth call
-    const currentIsAuthenticated = isAuthenticated.value;
-    const currentUserRole = user.value?.role?.name;
-
-    // 2. Check if route requires authentication
-    if (requiresAuth) {
-      if (!currentIsAuthenticated) {
-        // Not authenticated, redirect to login
-        console.log('Guard: Not authenticated, redirecting to login for path:', to.fullPath);
-        next({ name: 'Login', query: { redirect: to.fullPath } });
-        return;
-      }
-
-      // 3. Check if route requires a specific role
-      if (requiredRole) {
-        if (!currentUserRole || currentUserRole !== requiredRole) {
-          // Authenticated but wrong role, redirect to unauthorized or dashboard
-          console.warn(`Guard: Unauthorized access attempt to ${to.path}. Required role: ${requiredRole}, User role: ${currentUserRole}`);
-          // Option 1: Redirect to dashboard (if Unauthorized page doesn't exist yet)
-           next({ name: 'Dashboard' });
-          // Option 2: Redirect to a dedicated 'Unauthorized' page
-          // next({ name: 'Unauthorized' });
-          return;
-        }
-      }
-    // 4. Handle access to login page when already authenticated
-    } else if (to.name === 'Login' && currentIsAuthenticated) {
-       // Optional: If user is logged in and tries to access Login page, redirect to dashboard
-       console.log('Guard: Authenticated user accessing Login page, redirecting to Dashboard.');
-       next({ name: 'Dashboard' });
-       return;
+    // Si la ruta requiere autenticación y el usuario no está autenticado
+    if (requiresAuth && !isAuthenticated.value) {
+      console.log('[AuthGuard] Route requires auth but user is not authenticated.');
+      return next({ name: 'Login', query: { redirect: to.fullPath } });
     }
 
-    // If all checks pass, proceed to the route
-    console.log(`Guard: Access granted to ${to.path}`);
-    next();
+    // Si el usuario está autenticado y trata de acceder a la página de login
+    if (to.name === 'Login' && isAuthenticated.value) {
+      console.log('[AuthGuard] Authenticated user trying to access login page.');
+      return next('/');
+    }
+
+    // Si la ruta requiere un rol específico
+    if (requiresAuth && requiredRole && isAuthenticated.value) {
+      // Obtener el rol del usuario (podría estar en diferentes formatos)
+      const userRoleObj = user.value?.role;
+      console.log('[AuthGuard] User role object:', userRoleObj);
+      
+      // Extraer el nombre del rol, considerando diferentes estructuras posibles
+      let userRole = '';
+      if (typeof userRoleObj === 'string') {
+        userRole = userRoleObj;
+      } else if (userRoleObj && typeof userRoleObj === 'object') {
+        userRole = userRoleObj.name || userRoleObj.roleName || '';
+      }
+      
+      console.log('[AuthGuard] Required Role:', requiredRole, 'User Role extracted:', userRole);
+      
+      // Normalizar los roles para comparación (convertir a mayúsculas y eliminar prefijos comunes)
+      const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
+      const normalizedRequiredRole = requiredRole.toUpperCase().replace('ROLE_', '');
+      
+      console.log('[AuthGuard] Normalized comparison:', normalizedUserRole, 'vs', normalizedRequiredRole);
+      
+      // Verificar si el rol del usuario coincide con alguno de los roles aceptados
+      const isAuthorized = normalizedUserRole === normalizedRequiredRole || 
+                          (normalizedRequiredRole === 'ADMIN' && normalizedUserRole === 'ADMINISTRADOR') ||
+                          (normalizedRequiredRole === 'ADMINISTRADOR' && normalizedUserRole === 'ADMIN');
+      
+      if (!userRole || !isAuthorized) {
+        console.log('[AuthGuard] Role mismatch or missing, redirecting to Unauthorized.');
+        return next({ name: 'Unauthorized' });
+      }
+    }
+
+    // En todos los demás casos, permitir la navegación
+    console.log('[AuthGuard] Navigation allowed.');
+    return next();
   });
 }

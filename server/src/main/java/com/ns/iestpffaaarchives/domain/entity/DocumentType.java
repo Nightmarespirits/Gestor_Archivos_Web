@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,5 +25,6 @@ public class DocumentType {
     private String description;
 
     @OneToMany(mappedBy = "type")
+    @JsonIgnore
     private Set<Document> documents = new HashSet<>();
 }

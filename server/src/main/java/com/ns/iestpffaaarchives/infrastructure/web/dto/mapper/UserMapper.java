@@ -30,6 +30,7 @@ public class UserMapper {
             roleDTO.setName(user.getRole().getName());
             roleDTO.setDescription(user.getRole().getDescription());
             userDTO.setRole(roleDTO);
+            userDTO.setRoleId(user.getRole().getId()); // Establecer el roleId para facilitar las actualizaciones
         }
         
         return userDTO;

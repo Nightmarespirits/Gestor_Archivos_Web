@@ -161,6 +161,7 @@ Base URL: `/api/users`
 #### Actualizar Usuario
 - **Endpoint**: `PUT /api/users/{id}`
 - **Descripción**: Actualiza la información de un usuario
+- **Acceso**: Solo usuarios con rol ADMIN
 - **Parámetros de Ruta**:
   - `id`: ID del usuario
 - **Datos de Entrada**:
@@ -184,11 +185,13 @@ Base URL: `/api/users`
       "id": 1,
       "name": "string"
     },
+    "roleId": 1,
     "createdAt": "2025-03-26T18:00:00"
   }
   ```
 - **Respuestas de Error**:
-  - 404 Not Found
+  - 403 Forbidden: No tienes permisos para realizar esta acción
+  - 404 Not Found: Usuario no encontrado
 
 #### Eliminar Usuario
 - **Endpoint**: `DELETE /api/users/{id}`

@@ -23,6 +23,7 @@ C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\se
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\domain\repository\UserRepository.java
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\IestpffaaArchivesApplication.java
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\infrastructure\config\DataInitializationConfig.java
+C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\infrastructure\config\JacksonConfig.java
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\infrastructure\config\SecurityConfig.java
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\infrastructure\config\WebConfig.java
 C:\Users\USUARIO\Desktop\Projects\sistema_archivo_iestpffaa\ARCHIVO_IESTPFFAA\server\src\main\java\com\ns\iestpffaaarchives\infrastructure\security\JwtAuthenticationFilter.java
