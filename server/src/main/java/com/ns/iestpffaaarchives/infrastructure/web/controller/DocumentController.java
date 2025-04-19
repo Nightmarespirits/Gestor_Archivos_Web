@@ -2,8 +2,14 @@ package com.ns.iestpffaaarchives.infrastructure.web.controller;
 
 import com.ns.iestpffaaarchives.application.service.DocumentService;
 import com.ns.iestpffaaarchives.application.service.UserService;
+import com.ns.iestpffaaarchives.application.service.TagService;
+import com.ns.iestpffaaarchives.application.service.DocumentTypeService;
 import com.ns.iestpffaaarchives.domain.entity.Document;
 import com.ns.iestpffaaarchives.domain.entity.User;
+import com.ns.iestpffaaarchives.domain.entity.Tag;
+import com.ns.iestpffaaarchives.domain.entity.DocumentType;
+import com.ns.iestpffaaarchives.infrastructure.web.dto.DocumentDTO;
+import com.ns.iestpffaaarchives.infrastructure.web.dto.mapper.DocumentMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -21,9 +27,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -32,64 +41,77 @@ public class DocumentController {
 
     private final DocumentService documentService;
     private final UserService userService;
+    private final TagService tagService;
+    private final DocumentTypeService documentTypeService;
     
     @Value("${file.upload-dir}")
     private String uploadDir;
 
     @Autowired
-    public DocumentController(DocumentService documentService, UserService userService) {
+    public DocumentController(DocumentService documentService, UserService userService, 
+            TagService tagService, DocumentTypeService documentTypeService) {
         this.documentService = documentService;
         this.userService = userService;
+        this.tagService = tagService;
+        this.documentTypeService = documentTypeService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Document>> getAllDocuments() {
+    public ResponseEntity<List<DocumentDTO>> getAllDocuments() {
         List<Document> documents = documentService.getAllDocuments();
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Document> getDocumentById(@PathVariable Long id) {
-        Optional<Document> document = documentService.getDocumentById(id);
-        return document.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public ResponseEntity<DocumentDTO> getDocumentById(@PathVariable Long id) {
+        return documentService.getDocumentById(id)
+            .map(document -> ResponseEntity.ok(DocumentMapper.toDTO(document)))
+            .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Document>> searchDocumentsByTitle(@RequestParam String title) {
+    public ResponseEntity<List<DocumentDTO>> searchDocumentsByTitle(@RequestParam String title) {
         List<Document> documents = documentService.searchDocumentsByTitle(title);
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
     }
 
     @GetMapping("/tag/{tagName}")
-    public ResponseEntity<List<Document>> getDocumentsByTag(@PathVariable String tagName) {
+    public ResponseEntity<List<DocumentDTO>> getDocumentsByTag(@PathVariable String tagName) {
         List<Document> documents = documentService.getDocumentsByTag(tagName);
-        return ResponseEntity.ok(documents);
+        return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
     }
 
     @GetMapping("/author/{authorId}")
-    public ResponseEntity<List<Document>> getDocumentsByAuthor(@PathVariable Long authorId) {
+    public ResponseEntity<List<DocumentDTO>> getDocumentsByAuthor(@PathVariable Long authorId) {
         Optional<User> authorOptional = userService.getUserById(authorId);
         
         if (authorOptional.isPresent()) {
             List<Document> documents = documentService.getDocumentsByAuthor(authorOptional.get());
-            return ResponseEntity.ok(documents);
+            return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
         } else {
             return ResponseEntity.notFound().build();
         }
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Document> createDocument(
+    public ResponseEntity<?> createDocument(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
             @RequestParam("description") String description,
-            @RequestParam("authorId") Long authorId) {
+            @RequestParam("authorId") Long authorId,
+            @RequestParam("type") String type,
+            @RequestParam(value = "tags", required = false) List<String> tagNames) {
         
         Optional<User> authorOptional = userService.getUserById(authorId);
         
         if (authorOptional.isEmpty()) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body("El autor especificado no existe");
+        }
+        
+        // Buscar el DocumentType por nombre
+        Optional<DocumentType> documentType = documentTypeService.findByName(type);
+        if (documentType.isEmpty()) {
+            return ResponseEntity.badRequest().body("El tipo de documento especificado no existe");
         }
         
         try {
@@ -108,6 +130,23 @@ public class DocumentController {
             Path filePath = uploadPath.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
             
+            // Procesar tags
+            Set<Tag> tags = new HashSet<>();
+            if (tagNames != null && !tagNames.isEmpty()) {
+                tags = tagNames.stream()
+                    .map(tagName -> {
+                        List<Tag> existingTags = tagService.searchTagsByName(tagName);
+                        if (!existingTags.isEmpty()) {
+                            return existingTags.get(0);
+                        } else {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagService.createTag(newTag);
+                        }
+                    })
+                    .collect(Collectors.toSet());
+            }
+            
             // Crear documento
             Document document = new Document();
             document.setTitle(title);
@@ -115,12 +154,14 @@ public class DocumentController {
             document.setFilePath(uniqueFilename);
             document.setFormat(file.getContentType());
             document.setAuthor(authorOptional.get());
+            document.setType(documentType.get());
+            document.setTags(tags);
             
             Document savedDocument = documentService.createDocument(document);
             
-            return ResponseEntity.status(HttpStatus.CREATED).body(savedDocument);
+            return ResponseEntity.status(HttpStatus.CREATED).body(DocumentMapper.toDTO(savedDocument));
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el archivo: " + e.getMessage());
         }
     }
 
@@ -152,22 +193,39 @@ public class DocumentController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Document> updateDocument(@PathVariable Long id, @RequestBody Document documentDetails) {
+    public ResponseEntity<DocumentDTO> updateDocument(@PathVariable Long id, @RequestBody DocumentDTO documentDetails) {
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         
         if (documentOptional.isPresent()) {
             Document document = documentOptional.get();
             
-            document.setTitle(documentDetails.getTitle());
-            document.setDescription(documentDetails.getDescription());
+            if (documentDetails.getTitle() != null) {
+                document.setTitle(documentDetails.getTitle());
+            }
+            if (documentDetails.getDescription() != null) {
+                document.setDescription(documentDetails.getDescription());
+            }
             
-            // Si se proporcionan etiquetas, actualizarlas
+            // Convertir nombres de etiquetas a entidades Tag
             if (documentDetails.getTags() != null) {
-                document.setTags(documentDetails.getTags());
+                Set<Tag> tags = documentDetails.getTags().stream()
+                    .map(tagName -> {
+                        // Buscar la etiqueta por nombre o crear una nueva
+                        List<Tag> existingTags = tagService.searchTagsByName(tagName);
+                        if (!existingTags.isEmpty()) {
+                            return existingTags.get(0);
+                        } else {
+                            Tag newTag = new Tag();
+                            newTag.setName(tagName);
+                            return tagService.createTag(newTag);
+                        }
+                    })
+                    .collect(Collectors.toSet());
+                document.setTags(tags);
             }
             
             Document updatedDocument = documentService.updateDocument(document);
-            return ResponseEntity.ok(updatedDocument);
+            return ResponseEntity.ok(DocumentMapper.toDTO(updatedDocument));
         } else {
             return ResponseEntity.notFound().build();
         }

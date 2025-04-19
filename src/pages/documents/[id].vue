@@ -6,7 +6,6 @@
         <span class="ml-4 text-h6">Cargando documento...</span>
       </v-col>
     </v-row>
-
     <template v-else-if="document">
       <v-row>
         <v-col cols="12">
@@ -174,7 +173,7 @@
         </div>
       </v-col>
     </v-row>
-    
+
     <v-dialog v-model="deleteDialog" max-width="500px">
       <v-card>
         <v-card-title class="text-h5">Confirmar eliminación</v-card-title>

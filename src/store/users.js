@@ -34,6 +34,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null;
     
     try {
+      console.log('Obteniendo usuarios desde:', `${API_BASE_URL}/users`);
       const response = await fetch(`${API_BASE_URL}/users`, {
         method: 'GET',
         headers: getAuthHeaders(),

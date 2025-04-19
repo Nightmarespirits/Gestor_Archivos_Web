@@ -1,6 +1,7 @@
 package com.ns.iestpffaaarchives.infrastructure.web.controller;
 
 import com.ns.iestpffaaarchives.domain.entity.Tag;
+import com.ns.iestpffaaarchives.application.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,60 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
-
-// Repositorio para Tag
-@Repository
-interface TagRepository extends JpaRepository<Tag, Long> {
-    boolean existsByName(String name);
-    List<Tag> findByNameContainingIgnoreCase(String name);
-}
-
-// Servicio para Tag
-@Service
-class TagService {
-    
-    private final TagRepository tagRepository;
-    
-    @Autowired
-    public TagService(TagRepository tagRepository) {
-        this.tagRepository = tagRepository;
-    }
-    
-    public List<Tag> getAllTags() {
-        return tagRepository.findAll();
-    }
-    
-    public Optional<Tag> getTagById(Long id) {
-        return tagRepository.findById(id);
-    }
-    
-    public List<Tag> searchTagsByName(String name) {
-        return tagRepository.findByNameContainingIgnoreCase(name);
-    }
-    
-    public Tag createTag(Tag tag) {
-        return tagRepository.save(tag);
-    }
-    
-    public Tag updateTag(Tag tag) {
-        return tagRepository.save(tag);
-    }
-    
-    public void deleteTag(Long id) {
-        tagRepository.deleteById(id);
-    }
-    
-    public boolean existsByName(String name) {
-        return tagRepository.existsByName(name);
-    }
-}
-
 @RestController
 @RequestMapping("/api/tags")
-// Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class TagController {
 
     private final TagService tagService;
@@ -120,6 +69,9 @@ public class TagController {
             }
             
             tag.setName(tagDetails.getName());
+            if (tagDetails.getDescription() != null) {
+                tag.setDescription(tagDetails.getDescription());
+            }
             
             Tag updatedTag = tagService.updateTag(tag);
             return ResponseEntity.ok(updatedTag);

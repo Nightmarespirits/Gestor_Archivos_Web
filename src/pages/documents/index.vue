@@ -41,6 +41,17 @@
           :no-data-text="'No se encontraron documentos'"
           :no-results-text="'No se encontraron resultados'"
         >
+          <!-- Columna de título con enlace a detalle -->
+          <template v-slot:item.title="{ item }">
+            <a 
+              href="#" 
+              class="text-decoration-none text-primary"
+              @click.prevent="viewDocument(item)"
+            >
+              {{ item.title }}
+            </a>
+          </template>
+
           <template v-slot:item.type="{ item }">
             <v-chip
               v-if="item.type"

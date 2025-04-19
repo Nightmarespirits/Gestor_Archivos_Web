@@ -65,9 +65,6 @@ public class Document {
     @OneToMany(mappedBy = "document", cascade = CascadeType.ALL)
     private Set<AccessControl> accessControls = new HashSet<>();
 
-    @OneToOne(mappedBy = "document", cascade = CascadeType.ALL)
-    private Metadata metadata;
-
     @PrePersist
     protected void onCreate() {
         uploadDate = LocalDateTime.now();

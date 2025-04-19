@@ -2,6 +2,13 @@
 node_modules
 /dist
 
+# Maven build directories
+target/
+**/target/
+*.class
+*.jar
+*.war
+
 # local env files
 .env.local
 .env.*.local

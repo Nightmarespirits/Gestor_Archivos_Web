@@ -39,7 +39,7 @@
                 <!-- Tipo de documento -->
                 <v-col cols="12" md="6">
                   <v-select
-                    v-model="formData.typeId"
+                    v-model="formData.type"
                     :items="documentTypes"
                     item-title="name"
                     item-value="id"
@@ -182,7 +182,7 @@ const snackbar = ref({
 const formData = ref({
   title: '',
   description: '',
-  typeId: null,
+  type: null,
   tags: [],
   file: null,
   authorId: null
@@ -222,7 +222,7 @@ async function submitForm() {
     return;
   }
 
-  if (!formData.value.typeId) {
+  if (!formData.value.type) {
     showError('El tipo de documento es obligatorio.');
     return;
   }
@@ -236,7 +236,7 @@ async function submitForm() {
     formDataToSend.append('title', formData.value.title);
     formDataToSend.append('description', formData.value.description || '');
     formDataToSend.append('authorId', formData.value.authorId);
-    formDataToSend.append('typeId', formData.value.typeId);
+    formDataToSend.append('type', formData.value.type);
     
     // Agregar etiquetas si existen
     if (formData.value.tags && formData.value.tags.length > 0) {
@@ -283,7 +283,7 @@ function resetForm() {
   formData.value = {
     title: '',
     description: '',
-    typeId: null,
+    type: null,
     tags: [],
     file: null,
     authorId: authStore.user ? authStore.user.id : null

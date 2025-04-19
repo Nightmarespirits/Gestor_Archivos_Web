@@ -24,7 +24,7 @@
               </v-col>
               
               <!-- Filtro por tipo de documento -->
-              <v-col cols="12" md="3">
+              <v-col cols="12" md="4">
                 <v-select
                   v-model="selectedDocumentType"
                   :items="documentTypes"
@@ -36,11 +36,12 @@
                   hide-details
                   prepend-inner-icon="mdi-file-document-outline"
                   return-object
+                  clearable
                 ></v-select>
               </v-col>
               
               <!-- Filtro por etiqueta -->
-              <v-col cols="12" md="3">
+              <v-col cols="12" md="4">
                 <v-select
                   v-model="selectedTag"
                   :items="tags"
@@ -52,11 +53,68 @@
                   hide-details
                   prepend-inner-icon="mdi-tag-outline"
                   return-object
+                  clearable
                 ></v-select>
+              </v-col>
+            </v-row>
+
+            <v-row class="mt-4">
+              <!-- Filtro por fecha desde -->
+              <v-col cols="12" md="4">
+                <v-menu
+                  v-model="dateFromMenu"
+                  :close-on-content-click="false"
+                  location="bottom"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      v-model="dateFrom"
+                      label="Fecha desde"
+                      prepend-inner-icon="mdi-calendar"
+                      readonly
+                      v-bind="props"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      clearable
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker
+                    v-model="dateFrom"
+                    @update:model-value="dateFromMenu = false"
+                  ></v-date-picker>
+                </v-menu>
+              </v-col>
+              
+              <!-- Filtro por fecha hasta -->
+              <v-col cols="12" md="4">
+                <v-menu
+                  v-model="dateToMenu"
+                  :close-on-content-click="false"
+                  location="bottom"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      v-model="dateTo"
+                      label="Fecha hasta"
+                      prepend-inner-icon="mdi-calendar"
+                      readonly
+                      v-bind="props"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      clearable
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker
+                    v-model="dateTo"
+                    @update:model-value="dateToMenu = false"
+                  ></v-date-picker>
+                </v-menu>
               </v-col>
               
               <!-- Botones de acción -->
-              <v-col cols="12" md="2" class="d-flex align-center">
+              <v-col cols="12" md="4" class="d-flex align-center">
                 <v-btn 
                   color="primary" 
                   class="mr-2" 
@@ -74,125 +132,6 @@
                 </v-btn>
               </v-col>
             </v-row>
-            
-            <!-- Filtros adicionales -->
-            <v-expand-transition>
-              <div v-if="showAdvancedFilters">
-                <v-row class="mt-4">
-                  <!-- Filtro por fecha desde -->
-                  <v-col cols="12" md="3">
-                    <v-menu
-                      v-model="dateFromMenu"
-                      :close-on-content-click="false"
-                      location="bottom"
-                    >
-                      <template v-slot:activator="{ props }">
-                        <v-text-field
-                          v-model="dateFrom"
-                          label="Fecha desde"
-                          prepend-inner-icon="mdi-calendar"
-                          readonly
-                          v-bind="props"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                        ></v-text-field>
-                      </template>
-                      <v-date-picker
-                        v-model="dateFrom"
-                        @update:model-value="dateFromMenu = false"
-                      ></v-date-picker>
-                    </v-menu>
-                  </v-col>
-                  
-                  <!-- Filtro por fecha hasta -->
-                  <v-col cols="12" md="3">
-                    <v-menu
-                      v-model="dateToMenu"
-                      :close-on-content-click="false"
-                      location="bottom"
-                    >
-                      <template v-slot:activator="{ props }">
-                        <v-text-field
-                          v-model="dateTo"
-                          label="Fecha hasta"
-                          prepend-inner-icon="mdi-calendar"
-                          readonly
-                          v-bind="props"
-                          variant="outlined"
-                          density="comfortable"
-                          hide-details
-                        ></v-text-field>
-                      </template>
-                      <v-date-picker
-                        v-model="dateTo"
-                        @update:model-value="dateToMenu = false"
-                      ></v-date-picker>
-                    </v-menu>
-                  </v-col>
-                  
-                  <!-- Filtro por autor -->
-                  <v-col cols="12" md="3">
-                    <v-autocomplete
-                      v-model="selectedAuthor"
-                      :items="authors"
-                      item-title="fullName"
-                      item-value="id"
-                      label="Autor"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      prepend-inner-icon="mdi-account"
-                      return-object
-                    ></v-autocomplete>
-                  </v-col>
-
-                  <!-- Filtro por departamento -->
-                  <v-col cols="12" md="3">
-                    <v-select
-                      v-model="selectedDepartment"
-                      :items="departments"
-                      item-title="title"
-                      item-value="value"
-                      label="Departamento"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      prepend-inner-icon="mdi-office-building"
-                    ></v-select>
-                  </v-col>
-
-                  <!-- Filtro por estado de expiración -->
-                  <v-col cols="12" md="3">
-                    <v-select
-                      v-model="selectedExpirationStatus"
-                      :items="expirationStatusOptions"
-                      item-title="title"
-                      item-value="value"
-                      label="Estado de expiración"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      prepend-inner-icon="mdi-calendar-alert"
-                    ></v-select>
-                  </v-col>
-                </v-row>
-              </div>
-            </v-expand-transition>
-            
-            <!-- Toggle para mostrar/ocultar filtros avanzados -->
-            <div class="d-flex justify-end mt-2">
-              <v-btn
-                variant="text"
-                size="small"
-                @click="showAdvancedFilters = !showAdvancedFilters"
-              >
-                {{ showAdvancedFilters ? 'Ocultar filtros avanzados' : 'Mostrar filtros avanzados' }}
-                <v-icon right>
-                  {{ showAdvancedFilters ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
-                </v-icon>
-              </v-btn>
-            </div>
           </v-card-text>
         </v-card>
         
@@ -213,7 +152,6 @@
             <v-data-table
               :headers="headers"
               :items="filteredDocuments"
-              :search="searchTitle"
               :loading="loading"
               :items-per-page="10"
               class="elevation-1"
@@ -250,8 +188,9 @@
                 </v-chip>
               </template>
 
+              <!-- Columna de fecha -->
               <template v-slot:item.uploadDate="{ item }">
-                {{ new Date(item.uploadDate).toLocaleDateString() }}
+                {{ formatDate(item.uploadDate) }}
               </template>
               
               <!-- Columna de acciones -->
@@ -302,25 +241,11 @@
                 </v-tooltip>
               </template>
             </v-data-table>
-            
-            <!-- Estado de carga -->
-            <div v-if="loading" class="d-flex justify-center align-center pa-4">
-              <v-progress-circular indeterminate color="primary"></v-progress-circular>
-              <span class="ml-2">Cargando documentos...</span>
-            </div>
-            
-            <!-- Mensaje cuando no hay resultados -->
-            <v-alert
-              v-if="!loading && filteredDocuments.length === 0"
-              type="info"
-              text="No se encontraron documentos con los criterios de búsqueda especificados."
-              class="mt-4"
-            ></v-alert>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-    
+
     <!-- Snackbar para notificaciones -->
     <v-snackbar
       v-model="snackbar.show"
@@ -329,10 +254,7 @@
     >
       {{ snackbar.text }}
       <template v-slot:actions>
-        <v-btn
-          variant="text"
-          @click="snackbar.show = false"
-        >
+        <v-btn variant="text" @click="snackbar.show = false">
           Cerrar
         </v-btn>
       </template>
@@ -344,7 +266,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
-import { useAuthStore } from '@/store/auth';
 
 // Stores
 const documentsStore = useDocumentsStore();
@@ -354,51 +275,32 @@ const router = useRouter();
 const searchTitle = ref('');
 const selectedDocumentType = ref(null);
 const selectedTag = ref(null);
-const selectedAuthor = ref(null);
 const dateFrom = ref(null);
 const dateTo = ref(null);
 const dateFromMenu = ref(false);
 const dateToMenu = ref(false);
-const showAdvancedFilters = ref(false);
 const documents = ref([]);
 const documentTypes = ref([]);
 const tags = ref([]);
-const authors = ref([]);
 const loading = ref(false);
-const deleteDialog = ref(false);
-const documentToDelete = ref(null);
 const snackbar = ref({
   show: false,
   text: '',
   color: 'success',
   timeout: 3000
 });
-const selectedDepartment = ref(null);
-const selectedExpirationStatus = ref(null);
-const departments = ref([]);
-const adminPassword = ref('');
-const deleteFormValid = ref(false);
 
 // Columnas de la tabla
 const headers = [
   { title: 'ID', key: 'id', align: 'start', sortable: true },
   { title: 'Título', key: 'title', align: 'start', sortable: true, maxWidth: 200 },
   { title: 'Tipo', key: 'type', align: 'center', sortable: true },
-  { title: 'Versión', key: 'versionNumber', align: 'center', sortable: true },
   { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
   { title: 'Autor', key: 'author.username', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
-// Opciones de estado de expiración
-const expirationStatusOptions = [
-  { title: 'Expirados', value: 'expired' },
-  { title: 'Por expirar', value: 'expiring-soon' },
-  { title: 'Vigentes', value: 'valid' },
-  { title: 'Sin expiración', value: 'no-expiration' }
-];
-
-// Computed property para documentos filtrados
+// Computed
 const filteredDocuments = computed(() => {
   let result = [...documents.value];
   
@@ -425,75 +327,28 @@ const filteredDocuments = computed(() => {
     );
   }
   
-  // Filtrar por autor
-  if (selectedAuthor.value) {
+  // Filtrar por fecha desde
+  if (dateFrom.value) {
+    const fromDate = new Date(dateFrom.value);
+    fromDate.setHours(0, 0, 0, 0); // Establecer al inicio del día
     result = result.filter(doc => 
-      doc.author && doc.author.id === selectedAuthor.value.id
+      new Date(doc.uploadDate) >= fromDate
     );
   }
   
-  // Filtrar por rango de fechas
-  if (dateFrom.value) {
-    const fromDate = new Date(dateFrom.value);
-    result = result.filter(doc => new Date(doc.uploadDate) >= fromDate);
-  }
-  
+  // Filtrar por fecha hasta
   if (dateTo.value) {
     const toDate = new Date(dateTo.value);
-    toDate.setHours(23, 59, 59, 999);
-    result = result.filter(doc => new Date(doc.uploadDate) <= toDate);
+    toDate.setHours(23, 59, 59, 999); // Establecer al final del día
+    result = result.filter(doc => 
+      new Date(doc.uploadDate) <= toDate
+    );
   }
-  
-  // Filtrar por metadatos
-  result = result.filter(doc => {
-    if (!doc.metadata) return true;
-    
-    // Filtrar por departamento
-    if (selectedDepartment.value && 
-        doc.metadata.department !== selectedDepartment.value) {
-      return false;
-    }
-    
-    // Filtrar por palabras clave
-    if (searchTitle.value.trim() && doc.metadata.keywords) {
-      const keywords = doc.metadata.keywords.toLowerCase();
-      if (!keywords.includes(searchTitle.value.toLowerCase().trim())) {
-        return false;
-      }
-    }
-    
-    // Filtrar por estado de expiración
-    if (selectedExpirationStatus.value) {
-      const today = new Date();
-      const expirationDate = doc.metadata.expirationDate ? 
-        new Date(doc.metadata.expirationDate) : null;
-      
-      switch (selectedExpirationStatus.value) {
-        case 'expired':
-          if (!expirationDate || expirationDate > today) return false;
-          break;
-        case 'expiring-soon':
-          if (!expirationDate) return false;
-          const thirtyDaysFromNow = new Date();
-          thirtyDaysFromNow.setDate(today.getDate() + 30);
-          if (expirationDate > thirtyDaysFromNow || expirationDate < today) return false;
-          break;
-        case 'valid':
-          if (!expirationDate || expirationDate <= today) return false;
-          break;
-        case 'no-expiration':
-          if (expirationDate) return false;
-          break;
-      }
-    }
-    
-    return true;
-  });
   
   return result;
 });
 
-// Cargar datos iniciales
+// Lifecycle
 onMounted(async () => {
   try {
     loading.value = true;
@@ -507,18 +362,6 @@ onMounted(async () => {
     // Cargar etiquetas
     await fetchTags();
     
-    // Extraer departamentos únicos de los documentos
-    const deptSet = new Set();
-    documents.value.forEach(doc => {
-      if (doc.metadata && doc.metadata.department) {
-        deptSet.add(doc.metadata.department);
-      }
-    });
-    departments.value = Array.from(deptSet).map(dept => ({
-      title: dept,
-      value: dept
-    }));
-    
   } catch (error) {
     showError('Error al cargar los datos iniciales: ' + error.message);
   } finally {
@@ -527,7 +370,7 @@ onMounted(async () => {
 });
 
 // Observar cambios en los filtros para actualizar la búsqueda
-watch([selectedDocumentType, selectedTag, selectedAuthor, dateFrom, dateTo, selectedDepartment, selectedExpirationStatus], () => {
+watch([selectedDocumentType, selectedTag, dateFrom, dateTo], () => {
   searchDocuments();
 });
 
@@ -571,37 +414,9 @@ async function searchDocuments() {
     else if (selectedTag.value) {
       documents.value = await documentsStore.fetchDocumentsByTag(selectedTag.value.name);
     }
-    // Si hay un autor seleccionado, buscar por autor
-    else if (selectedAuthor.value) {
-      documents.value = await documentsStore.fetchDocumentsByAuthor(selectedAuthor.value.id);
-    }
     // De lo contrario, cargar todos los documentos
     else {
       documents.value = await documentsStore.fetchAllDocuments();
-    }
-    
-    // Filtrar resultados por tipo de documento si está seleccionado
-    if (selectedDocumentType.value) {
-      documents.value = documents.value.filter(doc => 
-        doc.type && doc.type.id === selectedDocumentType.value.id
-      );
-    }
-    
-    // Filtrar por fecha desde si está seleccionada
-    if (dateFrom.value) {
-      const fromDate = new Date(dateFrom.value);
-      documents.value = documents.value.filter(doc => 
-        new Date(doc.uploadDate) >= fromDate
-      );
-    }
-    
-    // Filtrar por fecha hasta si está seleccionada
-    if (dateTo.value) {
-      const toDate = new Date(dateTo.value);
-      toDate.setHours(23, 59, 59, 999); // Establecer al final del día
-      documents.value = documents.value.filter(doc => 
-        new Date(doc.uploadDate) <= toDate
-      );
     }
     
   } catch (error) {
@@ -615,11 +430,8 @@ function resetFilters() {
   searchTitle.value = '';
   selectedDocumentType.value = null;
   selectedTag.value = null;
-  selectedAuthor.value = null;
   dateFrom.value = null;
   dateTo.value = null;
-  selectedDepartment.value = null;
-  selectedExpirationStatus.value = null;
   fetchDocuments();
 }
 
@@ -629,6 +441,10 @@ function viewDocumentDetails(id) {
 
 function editDocument(id) {
   router.push(`/documents/${id}/edit`);
+}
+
+function navigateToCreateDocument() {
+  router.push('/documents/create');
 }
 
 async function downloadDocument(id) {
@@ -642,10 +458,6 @@ async function downloadDocument(id) {
   } catch (error) {
     showError('Error al descargar el documento: ' + error.message);
   }
-}
-
-function navigateToCreateDocument() {
-  router.push('/documents/create');
 }
 
 // Utilidades

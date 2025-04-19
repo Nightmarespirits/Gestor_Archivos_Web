@@ -385,13 +385,18 @@ Base URL: `/api/documents`
 
 #### Crear Documento
 - **Endpoint**: `POST /api/documents`
-- **Descripción**: Crea un nuevo documento con archivo adjunto
+- **Descripción**: Crea un nuevo documento con archivo adjunto, metadatos y etiquetas
 - **Tipo de Contenido**: `multipart/form-data`
 - **Datos de Entrada**:
   - `file`: Archivo a subir
   - `title`: Título del documento
   - `description`: Descripción del documento
   - `authorId`: ID del autor
+  - `type`: Tipo de documento
+  - `keywords`: (Opcional) Palabras clave para el documento
+  - `department`: (Opcional) Departamento al que pertenece el documento
+  - `expirationDate`: (Opcional) Fecha de expiración del documento (formato: YYYY-MM-DD)
+  - `tags`: (Opcional) Lista de etiquetas para el documento
 - **Respuesta Exitosa** (201 Created):
   ```json
   {
@@ -405,13 +410,45 @@ Base URL: `/api/documents`
       "id": 1,
       "username": "string"
     },
+    "type": {
+      "id": 1,
+      "name": "string"
+    },
     "isDeleted": false,
-    "versionNumber": 1
+    "versionNumber": 1,
+    "metadata": {
+      "id": 1,
+      "keywords": "string",
+      "department": "string",
+      "expirationDate": "2025-12-31"
+    },
+    "tags": [
+      {
+        "id": 1,
+        "name": "string"
+      }
+    ]
   }
   ```
+- **Ejemplo de Uso con cURL**:
+  ```bash
+  curl -X POST "http://localhost:8080/api/documents" \
+    -H "Authorization: Bearer <tu-token>" \
+    -F "file=@/ruta/al/archivo.pdf" \
+    -F "title=Documento de Prueba" \
+    -F "description=Esta es una descripción de prueba" \
+    -F "authorId=1" \
+    -F "type=REPORT" \
+    -F "keywords=palabra1, palabra2" \
+    -F "department=RR.HH." \
+    -F "expirationDate=2025-12-31" \
+    -F "tags=etiqueta1,etiqueta2"
+  ```
 - **Respuestas de Error**:
-  - 400 Bad Request
-  - 500 Internal Server Error
+  - 400 Bad Request: "Error: Archivo no proporcionado"
+  - 400 Bad Request: "Error: Tipo de documento no válido"
+  - 404 Not Found: "Error: Autor no encontrado"
+  - 500 Internal Server Error: "Error al guardar el archivo"
 
 #### Descargar Documento
 - **Endpoint**: `GET /api/documents/download/{id}`
@@ -488,6 +525,87 @@ Base URL: `/api/documents`
 - **Respuesta Exitosa** (204 No Content)
 - **Respuestas de Error**:
   - 404 Not Found
+
+### Instrucciones de Uso para Documentos
+
+#### Creación de Documentos
+
+1. **Preparación del Archivo**:
+   - Asegúrate de que el archivo que deseas subir esté listo y sea de un formato permitido (PDF, DOCX, XLSX, etc.)
+   - El tamaño del archivo no debe exceder el límite configurado en el servidor
+
+2. **Metadatos Requeridos**:
+   - `title`: Nombre descriptivo del documento
+   - `description`: Descripción detallada del contenido
+   - `authorId`: ID del usuario que está subiendo el documento
+   - `type`: Tipo de documento (ej: REPORT, CONTRACT, MEMO, etc.)
+
+3. **Metadatos Opcionales**:
+   - `keywords`: Palabras clave que facilitan la búsqueda
+   - `department`: Departamento al que pertenece el documento
+   - `expirationDate`: Fecha de vencimiento del documento
+   - `tags`: Lista de etiquetas para categorizar el documento
+
+4. **Proceso de Subida**:
+   - Utiliza una solicitud POST multipart/form-data
+   - Incluye el token de autenticación en el encabezado
+   - Envía todos los campos requeridos y opcionales
+   - El servidor generará un nombre único para el archivo
+   - Se crearán automáticamente los metadatos y se asociarán las etiquetas
+
+5. **Verificación**:
+   - Confirma que la respuesta tenga código 201 (Created)
+   - Guarda el ID del documento devuelto para futuras referencias
+   - Verifica que los metadatos y etiquetas se hayan guardado correctamente
+
+#### Gestión de Documentos
+
+1. **Búsqueda de Documentos**:
+   - Por título: `GET /api/documents/search?title=palabra`
+   - Por etiqueta: `GET /api/documents/tag/nombre-etiqueta`
+   - Por autor: `GET /api/documents/author/1`
+
+2. **Actualización de Documentos**:
+   - Solo se pueden actualizar metadatos y etiquetas
+   - No se puede modificar el archivo original
+   - Se mantiene un control de versiones automático
+
+3. **Eliminación de Documentos**:
+   - Soft Delete: Marca el documento como eliminado pero lo mantiene en el sistema
+   - Hard Delete: Elimina el documento y el archivo físico permanentemente
+   - Se requieren permisos especiales para eliminación permanente
+
+4. **Descarga de Documentos**:
+   - Utiliza el endpoint de descarga con el ID del documento
+   - Se verifican los permisos antes de permitir la descarga
+   - El archivo se entrega con su nombre original
+
+#### Mejores Prácticas
+
+1. **Nombrado de Documentos**:
+   - Usa títulos descriptivos y concisos
+   - Evita caracteres especiales en los nombres
+   - Incluye información relevante como fecha o versión
+
+2. **Uso de Etiquetas**:
+   - Utiliza etiquetas consistentes
+   - Crea un sistema de categorización claro
+   - No abuses del número de etiquetas por documento
+
+3. **Metadatos**:
+   - Completa todos los campos de metadatos posibles
+   - Usa palabras clave relevantes
+   - Mantén actualizados los metadatos
+
+4. **Seguridad**:
+   - Verifica los permisos antes de cada operación
+   - No compartas tokens de acceso
+   - Reporta cualquier comportamiento sospechoso
+
+5. **Mantenimiento**:
+   - Revisa periódicamente los documentos expirados
+   - Actualiza los metadatos cuando sea necesario
+   - Realiza copias de seguridad regulares
 
 ## Tipos de Documentos
 

@@ -75,6 +75,7 @@ declare global {
   const useAuthStore: typeof import('./store/auth.js')['useAuthStore']
   const useCssModule: typeof import('vue')['useCssModule']
   const useCssVars: typeof import('vue')['useCssVars']
+  const useDocumentStore: typeof import('./store/documents.js')['useDocumentStore']
   const useDocumentsStore: typeof import('./store/documents.js')['useDocumentsStore']
   const useId: typeof import('vue')['useId']
   const useLink: typeof import('vue-router')['useLink']

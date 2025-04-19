@@ -84,62 +84,6 @@
                   ></v-autocomplete>
                 </v-col>
                 
-                <!-- Metadatos -->
-                <v-col cols="12">
-                  <v-card class="mb-4">
-                    <v-card-title class="text-subtitle-1">
-                      <v-icon start>mdi-tag-text</v-icon>
-                      Metadatos
-                    </v-card-title>
-                    <v-card-text>
-                      <v-row>
-                        <v-col cols="12" md="6">
-                          <v-text-field
-                            v-model="formData.metadata.keywords"
-                            label="Palabras clave"
-                            variant="outlined"
-                            hint="Separar palabras clave por comas"
-                            persistent-hint
-                          ></v-text-field>
-                        </v-col>
-                        
-                        <v-col cols="12" md="6">
-                          <v-text-field
-                            v-model="formData.metadata.department"
-                            label="Departamento"
-                            variant="outlined"
-                          ></v-text-field>
-                        </v-col>
-                        
-                        <v-col cols="12" md="6">
-                          <v-menu
-                            v-model="expirationDateMenu"
-                            :close-on-content-click="false"
-                            location="bottom"
-                          >
-                            <template v-slot:activator="{ props }">
-                              <v-text-field
-                                v-model="formData.metadata.expirationDate"
-                                label="Fecha de expiración"
-                                prepend-inner-icon="mdi-calendar"
-                                readonly
-                                v-bind="props"
-                                variant="outlined"
-                                clearable
-                                @click:clear="formData.metadata.expirationDate = null"
-                              ></v-text-field>
-                            </template>
-                            <v-date-picker
-                              v-model="formData.metadata.expirationDate"
-                              @update:model-value="expirationDateMenu = false"
-                            ></v-date-picker>
-                          </v-menu>
-                        </v-col>
-                      </v-row>
-                    </v-card-text>
-                  </v-card>
-                </v-col>
-                
                 <!-- Información del archivo actual -->
                 <v-col cols="12">
                   <v-alert
@@ -324,11 +268,13 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
+import { useAuthStore } from '@/store/auth';
 
 // Stores y router
 const documentsStore = useDocumentsStore();
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 
 // Referencias
 const form = ref(null);
@@ -341,7 +287,6 @@ const availableTags = ref([]);
 const loading = ref(true);
 const saving = ref(false);
 const deleteDialog = ref(false);
-const expirationDateMenu = ref(false);
 const snackbar = ref({
   show: false,
   text: '',
@@ -360,12 +305,7 @@ const formData = ref({
   description: '',
   typeId: null,
   tags: [],
-  file: null,
-  metadata: {
-    keywords: '',
-    department: '',
-    expirationDate: null
-  }
+  file: null
 });
 
 // Cargar datos iniciales
@@ -397,12 +337,7 @@ watch(document, (newDocument) => {
       description: newDocument.description || '',
       typeId: newDocument.type ? newDocument.type.id : null,
       tags: newDocument.tags || [],
-      file: null,
-      metadata: {
-        keywords: newDocument.metadata?.keywords || '',
-        department: newDocument.metadata?.department || '',
-        expirationDate: newDocument.metadata?.expirationDate || null
-      }
+      file: null
     };
   }
 }, { immediate: true });
@@ -411,10 +346,6 @@ watch(document, (newDocument) => {
 async function loadDocument() {
   try {
     document.value = await documentsStore.fetchDocumentById(documentId.value);
-    
-    // Cargar metadatos
-    const metadata = await documentsStore.fetchMetadata(documentId.value);
-    document.value.metadata = metadata;
   } catch (error) {
     showError('Error al cargar el documento: ' + error.message);
     document.value = null;
@@ -450,11 +381,6 @@ async function submitForm() {
         });
       }
       
-      // Agregar metadatos
-      formDataToSend.append('metadata.keywords', formData.value.metadata.keywords || '');
-      formDataToSend.append('metadata.department', formData.value.metadata.department || '');
-      formDataToSend.append('metadata.expirationDate', formData.value.metadata.expirationDate || '');
-      
       await documentsStore.updateDocument(documentId.value, formDataToSend);
     } else {
       // Si no hay nuevo archivo, enviar JSON
@@ -462,12 +388,7 @@ async function submitForm() {
         title: formData.value.title,
         description: formData.value.description || '',
         typeId: formData.value.typeId,
-        tags: formData.value.tags || [],
-        metadata: {
-          keywords: formData.value.metadata.keywords || '',
-          department: formData.value.metadata.department || '',
-          expirationDate: formData.value.metadata.expirationDate || ''
-        }
+        tags: formData.value.tags || []
       };
       
       await documentsStore.updateDocument(documentId.value, updateData);
@@ -497,12 +418,7 @@ function resetForm() {
       description: document.value.description || '',
       typeId: document.value.type ? document.value.type.id : null,
       tags: document.value.tags || [],
-      file: null,
-      metadata: {
-        keywords: document.value.metadata?.keywords || '',
-        department: document.value.metadata?.department || '',
-        expirationDate: document.value.metadata?.expirationDate || null
-      }
+      file: null
     };
   }
   
@@ -512,7 +428,14 @@ function resetForm() {
 }
 
 function handleFileChange(file) {
-  console.log('Nuevo archivo seleccionado:', file);
+  if (!file) return;
+  
+  // Validación básica de tamaño (20MB máximo)
+  const maxSize = 20 * 1024 * 1024; // 20MB en bytes
+  if (file.size > maxSize) {
+    showError('El archivo es demasiado grande. El tamaño máximo es 20MB.');
+    formData.value.file = null;
+  }
 }
 
 function goBack() {
@@ -573,6 +496,8 @@ function getFileIcon(fileOrFormat) {
 }
 
 function formatFileSize(size) {
+  if (!size) return '';
+  
   if (size < 1024) {
     return size + ' bytes';
   } else if (size < 1024 * 1024) {
@@ -582,19 +507,19 @@ function formatFileSize(size) {
   }
 }
 
-function showSuccess(message) {
+function showSuccess(text) {
   snackbar.value = {
     show: true,
-    text: message,
+    text,
     color: 'success',
     timeout: 3000
   };
 }
 
-function showError(message) {
+function showError(text) {
   snackbar.value = {
     show: true,
-    text: message,
+    text,
     color: 'error',
     timeout: 5000
   };
