@@ -70,6 +70,7 @@ declare global {
   const toValue: typeof import('vue')['toValue']
   const triggerRef: typeof import('vue')['triggerRef']
   const unref: typeof import('vue')['unref']
+  const useActivityLogsStore: typeof import('./store/activityLogs.js')['useActivityLogsStore']
   const useAttrs: typeof import('vue')['useAttrs']
   const useAuthStore: typeof import('./store/auth.js')['useAuthStore']
   const useCssModule: typeof import('vue')['useCssModule']
@@ -157,6 +158,7 @@ declare module 'vue' {
     readonly toValue: UnwrapRef<typeof import('vue')['toValue']>
     readonly triggerRef: UnwrapRef<typeof import('vue')['triggerRef']>
     readonly unref: UnwrapRef<typeof import('vue')['unref']>
+    readonly useActivityLogsStore: UnwrapRef<typeof import('./store/activityLogs.js')['useActivityLogsStore']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
     readonly useAuthStore: UnwrapRef<typeof import('./store/auth.js')['useAuthStore']>
     readonly useCssModule: UnwrapRef<typeof import('vue')['useCssModule']>

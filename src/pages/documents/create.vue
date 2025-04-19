@@ -221,6 +221,11 @@ async function submitForm() {
     showError('Por favor, complete todos los campos obligatorios.');
     return;
   }
+
+  if (!formData.value.typeId) {
+    showError('El tipo de documento es obligatorio.');
+    return;
+  }
   
   try {
     loading.value = true;
@@ -246,10 +251,26 @@ async function submitForm() {
     
     showSuccess('Documento creado correctamente.');
     
-    // Redirigir a la página de detalles del documento
-    setTimeout(() => {
-      router.push(`/documents/${newDocument.id}`);
-    }, 1500);
+    // Redirigir a la página de detalles del documento después de añadir metadatos
+    if (newDocument.id) {
+      try {
+        // Crear metadatos básicos
+        const metadata = {
+          keywords: formData.value.title.split(' ').join(','),
+          department: 'General'
+        };
+        
+        await documentsStore.createMetadata(newDocument.id, metadata);
+        
+        setTimeout(() => {
+          router.push(`/documents/${newDocument.id}`);
+        }, 1500);
+      } catch (metadataError) {
+        console.error('Error al crear metadatos:', metadataError);
+        // Continuar con la redirección aunque fallen los metadatos
+        router.push(`/documents/${newDocument.id}`);
+      }
+    }
     
   } catch (error) {
     showError('Error al crear el documento: ' + error.message);

@@ -84,6 +84,62 @@
                   ></v-autocomplete>
                 </v-col>
                 
+                <!-- Metadatos -->
+                <v-col cols="12">
+                  <v-card class="mb-4">
+                    <v-card-title class="text-subtitle-1">
+                      <v-icon start>mdi-tag-text</v-icon>
+                      Metadatos
+                    </v-card-title>
+                    <v-card-text>
+                      <v-row>
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="formData.metadata.keywords"
+                            label="Palabras clave"
+                            variant="outlined"
+                            hint="Separar palabras clave por comas"
+                            persistent-hint
+                          ></v-text-field>
+                        </v-col>
+                        
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="formData.metadata.department"
+                            label="Departamento"
+                            variant="outlined"
+                          ></v-text-field>
+                        </v-col>
+                        
+                        <v-col cols="12" md="6">
+                          <v-menu
+                            v-model="expirationDateMenu"
+                            :close-on-content-click="false"
+                            location="bottom"
+                          >
+                            <template v-slot:activator="{ props }">
+                              <v-text-field
+                                v-model="formData.metadata.expirationDate"
+                                label="Fecha de expiración"
+                                prepend-inner-icon="mdi-calendar"
+                                readonly
+                                v-bind="props"
+                                variant="outlined"
+                                clearable
+                                @click:clear="formData.metadata.expirationDate = null"
+                              ></v-text-field>
+                            </template>
+                            <v-date-picker
+                              v-model="formData.metadata.expirationDate"
+                              @update:model-value="expirationDateMenu = false"
+                            ></v-date-picker>
+                          </v-menu>
+                        </v-col>
+                      </v-row>
+                    </v-card-text>
+                  </v-card>
+                </v-col>
+                
                 <!-- Información del archivo actual -->
                 <v-col cols="12">
                   <v-alert
@@ -145,6 +201,7 @@
               <!-- Botones de acción -->
               <div class="d-flex justify-end">
                 <v-btn
+                  v-if="authStore.user?.role?.name === 'ADMIN'"
                   variant="text"
                   color="error"
                   @click="confirmDeleteDocument"
@@ -202,14 +259,25 @@
       <v-card>
         <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
         <v-card-text>
-          ¿Está seguro que desea eliminar el documento "{{ document?.title }}"?
+          <p class="mb-4">¿Está seguro que desea eliminar el documento "{{ document?.title }}"?</p>
+          
           <v-alert
             type="warning"
             variant="tonal"
-            class="mt-3"
+            class="mb-4"
           >
             Esta acción no se puede deshacer.
           </v-alert>
+
+          <v-form ref="deleteForm" v-model="deleteFormValid">
+            <v-text-field
+              v-model="adminPassword"
+              label="Contraseña de administrador"
+              type="password"
+              :rules="[v => !!v || 'La contraseña es requerida']"
+              required
+            ></v-text-field>
+          </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -224,6 +292,8 @@
             color="error"
             variant="elevated"
             @click="deleteDocument"
+            :loading="loading"
+            :disabled="!deleteFormValid"
           >
             Eliminar
           </v-btn>
@@ -262,6 +332,7 @@ const router = useRouter();
 
 // Referencias
 const form = ref(null);
+const deleteForm = ref(null);
 
 // Estado del componente
 const document = ref(null);
@@ -270,12 +341,15 @@ const availableTags = ref([]);
 const loading = ref(true);
 const saving = ref(false);
 const deleteDialog = ref(false);
+const expirationDateMenu = ref(false);
 const snackbar = ref({
   show: false,
   text: '',
   color: 'success',
   timeout: 3000
 });
+const deleteFormValid = ref(false);
+const adminPassword = ref('');
 
 // Obtener el ID del documento de la URL
 const documentId = computed(() => route.params.id);
@@ -286,7 +360,12 @@ const formData = ref({
   description: '',
   typeId: null,
   tags: [],
-  file: null
+  file: null,
+  metadata: {
+    keywords: '',
+    department: '',
+    expirationDate: null
+  }
 });
 
 // Cargar datos iniciales
@@ -318,7 +397,12 @@ watch(document, (newDocument) => {
       description: newDocument.description || '',
       typeId: newDocument.type ? newDocument.type.id : null,
       tags: newDocument.tags || [],
-      file: null
+      file: null,
+      metadata: {
+        keywords: newDocument.metadata?.keywords || '',
+        department: newDocument.metadata?.department || '',
+        expirationDate: newDocument.metadata?.expirationDate || null
+      }
     };
   }
 }, { immediate: true });
@@ -327,6 +411,10 @@ watch(document, (newDocument) => {
 async function loadDocument() {
   try {
     document.value = await documentsStore.fetchDocumentById(documentId.value);
+    
+    // Cargar metadatos
+    const metadata = await documentsStore.fetchMetadata(documentId.value);
+    document.value.metadata = metadata;
   } catch (error) {
     showError('Error al cargar el documento: ' + error.message);
     document.value = null;
@@ -362,6 +450,11 @@ async function submitForm() {
         });
       }
       
+      // Agregar metadatos
+      formDataToSend.append('metadata.keywords', formData.value.metadata.keywords || '');
+      formDataToSend.append('metadata.department', formData.value.metadata.department || '');
+      formDataToSend.append('metadata.expirationDate', formData.value.metadata.expirationDate || '');
+      
       await documentsStore.updateDocument(documentId.value, formDataToSend);
     } else {
       // Si no hay nuevo archivo, enviar JSON
@@ -369,7 +462,12 @@ async function submitForm() {
         title: formData.value.title,
         description: formData.value.description || '',
         typeId: formData.value.typeId,
-        tags: formData.value.tags || []
+        tags: formData.value.tags || [],
+        metadata: {
+          keywords: formData.value.metadata.keywords || '',
+          department: formData.value.metadata.department || '',
+          expirationDate: formData.value.metadata.expirationDate || ''
+        }
       };
       
       await documentsStore.updateDocument(documentId.value, updateData);
@@ -399,7 +497,12 @@ function resetForm() {
       description: document.value.description || '',
       typeId: document.value.type ? document.value.type.id : null,
       tags: document.value.tags || [],
-      file: null
+      file: null,
+      metadata: {
+        keywords: document.value.metadata?.keywords || '',
+        department: document.value.metadata?.department || '',
+        expirationDate: document.value.metadata?.expirationDate || null
+      }
     };
   }
   

@@ -37,22 +37,17 @@
           :loading="documentsStore.loading"
           :items-per-page="10"
           class="elevation-1"
+          hover
+          :no-data-text="'No se encontraron documentos'"
+          :no-results-text="'No se encontraron resultados'"
         >
-          <template v-slot:item.status="{ item }">
+          <template v-slot:item.type="{ item }">
             <v-chip
-              :color="item.status ? 'success' : 'error'"
-              :text="item.status ? 'Activo' : 'Inactivo'"
-              size="small"
-            ></v-chip>
-          </template>
-          
-          <template v-slot:item.documentType="{ item }">
-            <v-chip
-              v-if="item.documentType"
+              v-if="item.type"
               color="primary"
               size="small"
             >
-              {{ item.documentType.name }}
+              {{ item.type.name }}
             </v-chip>
             <v-chip
               v-else
@@ -61,6 +56,10 @@
             >
               Sin tipo
             </v-chip>
+          </template>
+
+          <template v-slot:item.uploadDate="{ item }">
+            {{ new Date(item.uploadDate).toLocaleDateString() }}
           </template>
           
           <template v-slot:item.actions="{ item }">
@@ -108,47 +107,10 @@
                 </v-btn>
               </template>
             </v-tooltip>
-            
-            <v-tooltip text="Eliminar documento" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="error"
-                  v-bind="props"
-                  @click="confirmDeleteDocument(item)"
-                  :disabled="documentsStore.loading"
-                >
-                  <v-icon>mdi-delete</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
           </template>
         </v-data-table>
       </v-card-text>
     </v-card>
-
-    <!-- Diálogo de confirmación para eliminar documento -->
-    <v-dialog v-model="deleteDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
-        <v-card-text>
-          ¿Está seguro que desea eliminar el documento "{{ documentToDelete?.title }}"? Esta acción no se puede deshacer.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="primary" text @click="deleteDialog = false">Cancelar</v-btn>
-          <v-btn 
-            color="error" 
-            text 
-            @click="deleteDocument"
-            :loading="documentsStore.loading"
-          >
-            Eliminar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <!-- Snackbar para notificaciones -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout">
@@ -179,11 +141,12 @@ const snackbar = ref({
 
 // Columnas de la tabla
 const headers = [
-  { title: 'Título', key: 'title', align: 'start', sortable: true },
-  { title: 'Descripción', key: 'description', align: 'start', sortable: true },
-  { title: 'Tipo de Documento', key: 'documentType', align: 'center' },
-  { title: 'Fecha Creación', key: 'createdAt', align: 'center', sortable: true },
-  { title: 'Estado', key: 'status', align: 'center', sortable: true },
+  { title: 'ID', key: 'id', align: 'start', sortable: true },
+  { title: 'Título', key: 'title', align: 'start', sortable: true , maxWidth: 200 },
+  { title: 'Tipo', key: 'type', align: 'center', sortable: true },
+  { title: 'Versión', key: 'versionNumber', align: 'center', sortable: true },
+  { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
+  { title: 'Autor', key: 'author.username', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
@@ -198,13 +161,13 @@ onMounted(async () => {
 
 // Navegar a la página de creación de documentos
 function navigateToCreateDocument() {
-  router.push({ name: 'documents-create' });
+  router.push({ name: 'CreateDocument' });
 }
 
 // Navegar a la página de edición de documentos
 function navigateToEditDocument(document) {
   router.push({ 
-    name: 'documents-edit', 
+    name: 'EditDocument', 
     params: { id: document.id }
   });
 }
@@ -212,7 +175,7 @@ function navigateToEditDocument(document) {
 // Ver detalles del documento
 function viewDocument(document) {
   router.push({ 
-    name: 'documents-view',
+    name: 'DocumentDetail',
     params: { id: document.id }
   });
 }
@@ -224,26 +187,6 @@ async function downloadDocument(document) {
     window.open(downloadUrl, '_blank');
   } catch (error) {
     showSnackbar(`Error al descargar documento: ${error.message}`, 'error');
-  }
-}
-
-// Confirmar eliminación de documento
-function confirmDeleteDocument(document) {
-  documentToDelete.value = document;
-  deleteDialog.value = true;
-}
-
-// Eliminar documento
-async function deleteDocument() {
-  if (!documentToDelete.value) return;
-  
-  try {
-    await documentsStore.deleteDocument(documentToDelete.value.id);
-    showSnackbar('Documento eliminado correctamente', 'success');
-    deleteDialog.value = false;
-    documentToDelete.value = null;
-  } catch (error) {
-    showSnackbar(`Error al eliminar documento: ${error.message}`, 'error');
   }
 }
 

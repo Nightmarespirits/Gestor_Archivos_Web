@@ -42,26 +42,40 @@ export const useDocumentsStore = defineStore('documents', () => {
   // Función utilitaria para manejar respuestas fetch con mejor manejo de errores
   async function handleFetchResponse(response) {
     if (!response.ok) {
-      // Intentamos leer el cuerpo de error como JSON primero
+      let errorMessage = '';
+      
+      // Try to get detailed error message from response
       try {
         const errorData = await response.json();
-        throw { status: response.status, data: errorData };
-      } catch (parseError) {
-        // Si no es JSON, obtenemos el texto
-        try {
-          const errorText = await response.text();
-          // Verificar si es una respuesta HTML (indicador de que estamos apuntando al lugar equivocado)
-          if (errorText.includes('<!DOCTYPE html>')) {
-            console.error('Recibiendo HTML en lugar de JSON. Verificar URL de API:', API_BASE_URL);
-            throw { status: response.status, data: 'Error de conexión con la API. Posible URL incorrecta.' };
-          }
-          throw { status: response.status, data: errorText || response.statusText };
-        } catch (textError) {
-          // Si todo falla, usamos el statusText
-          throw { status: response.status, data: response.statusText };
-        }
+        errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
+      } catch {
+        // If we can't parse JSON, use status text
+        errorMessage = response.statusText;
+      }
+
+      // Specific error handling based on status codes
+      switch (response.status) {
+        case 400:
+          throw new Error(`Error en la solicitud: ${errorMessage}`);
+        case 401:
+          throw new Error('Sesión expirada. Por favor, vuelva a iniciar sesión.');
+        case 403:
+          throw new Error('No tiene permisos para realizar esta acción.');
+        case 404:
+          throw new Error('El recurso solicitado no existe.');
+        case 413:
+          throw new Error('El archivo es demasiado grande.');
+        case 415:
+          throw new Error('Tipo de archivo no soportado.');
+        case 429:
+          throw new Error('Demasiadas solicitudes. Por favor, espere un momento.');
+        case 500:
+          throw new Error('Error interno del servidor. Por favor, intente más tarde.');
+        default:
+          throw new Error(`Error ${response.status}: ${errorMessage}`);
       }
     }
+
     return response.json();
   }
 
@@ -80,24 +94,55 @@ export const useDocumentsStore = defineStore('documents', () => {
       // Si hay un body y no es FormData, convertirlo a JSON
       if (options.body) {
         if (!options.isFormData) {
-          config.body = JSON.stringify(options.body);
+          if (typeof options.body === 'object') {
+            config.body = JSON.stringify(options.body);
+          } else {
+            throw new Error('El body debe ser un objeto válido');
+          }
         } else {
-          config.body = options.body;
+          if (options.body instanceof FormData) {
+            config.body = options.body;
+          } else {
+            throw new Error('El body debe ser una instancia de FormData');
+          }
         }
       }
+
+      // Timeout para las peticiones
+      const timeoutDuration = 30000; // 30 segundos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
+      config.signal = controller.signal;
       
-      const response = await fetch(url, config);
-      
-      // Si la respuesta es 204 No Content, devolver true
-      if (response.status === 204) {
-        return true;
+      try {
+        const response = await fetch(url, config);
+        clearTimeout(timeoutId);
+        
+        // Si la respuesta es 204 No Content, devolver true
+        if (response.status === 204) {
+          return true;
+        }
+        
+        return await handleFetchResponse(response);
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          throw new Error('La solicitud ha excedido el tiempo de espera.');
+        }
+        throw err;
       }
       
-      return await handleFetchResponse(response);
     } catch (err) {
-      error.value = err.message || (err.data ? JSON.stringify(err.data) : 'Error en la solicitud');
-      console.error(`Error en solicitud a ${endpoint}:`, err);
-      throw err;
+      let errorMsg = 'Error en la solicitud';
+      
+      if (err.message) {
+        errorMsg = err.message;
+      } else if (err.data) {
+        errorMsg = typeof err.data === 'object' ? JSON.stringify(err.data) : String(err.data);
+      }
+      
+      error.value = errorMsg;
+      console.error(`Error en solicitud a ${endpoint}:`, err, 'Detalles:', errorMsg);
+      throw new Error(errorMsg);
     } finally {
       loading.value = false;
     }
@@ -174,7 +219,21 @@ export const useDocumentsStore = defineStore('documents', () => {
   }
 
   // 9. Eliminar documento (soft delete)
-  async function deleteDocument(id) {
+  async function deleteDocument(id, password) {
+    if (!password) {
+      throw new Error('Se requiere contraseña para eliminar documentos');
+    }
+
+    // Validar contraseña antes de eliminar
+    const authValidation = await fetchApi(`/auth/validate-password`, {
+      method: 'POST',
+      body: { password }
+    });
+
+    if (!authValidation.valid) {
+      throw new Error('Contraseña incorrecta');
+    }
+
     await fetchApi(`/documents/${id}`, { method: 'DELETE' });
     
     // Eliminar de la lista local
@@ -213,6 +272,62 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchTags() {
     tags.value = await fetchApi('/tags');
     return tags.value;
+  }
+
+  // 13. Obtener metadatos de un documento
+  async function fetchMetadata(documentId) {
+    try {
+      const metadata = await fetchApi(`/metadata/document/${documentId}`);
+      return Array.isArray(metadata) ? metadata[0] : metadata; // Asegurar que devolvemos un objeto único
+    } catch (error) {
+      console.error('Error al obtener metadatos:', error);
+      return null; // Devolver null si hay error, permitiendo manejo graceful
+    }
+  }
+
+  // 14. Crear metadatos para un documento
+  async function createMetadata(documentId, metadata) {
+    // Validar datos de entrada
+    if (!metadata || typeof metadata !== 'object') {
+      throw new Error('Los metadatos deben ser un objeto válido');
+    }
+
+    // Sanitizar datos antes de enviar
+    const sanitizedMetadata = {
+      keywords: (metadata.keywords || '').trim(),
+      department: (metadata.department || '').trim(),
+      expirationDate: metadata.expirationDate || null
+    };
+
+    return await fetchApi(`/metadata/document/${documentId}`, {
+      method: 'POST',
+      body: sanitizedMetadata
+    });
+  }
+
+  // 15. Actualizar metadatos
+  async function updateMetadata(id, metadata) {
+    // Validar datos de entrada
+    if (!metadata || typeof metadata !== 'object') {
+      throw new Error('Los metadatos deben ser un objeto válido');
+    }
+
+    // Sanitizar datos antes de enviar
+    const sanitizedMetadata = {
+      keywords: (metadata.keywords || '').trim(),
+      department: (metadata.department || '').trim(),
+      expirationDate: metadata.expirationDate || null
+    };
+
+    return await fetchApi(`/metadata/${id}`, {
+      method: 'PUT',
+      body: sanitizedMetadata
+    });
+  }
+
+  // 16. Eliminar metadatos
+  async function deleteMetadata(id) {
+    return await fetchApi(`/metadata/${id}`, { method: 'DELETE' });
   }
 
   // Limpiar errores
@@ -255,6 +370,10 @@ export const useDocumentsStore = defineStore('documents', () => {
     deleteDocumentPermanently,
     fetchDocumentTypes,
     fetchTags,
+    fetchMetadata,
+    createMetadata,
+    updateMetadata,
+    deleteMetadata,
     clearError,
     clearCurrentDocument
   };

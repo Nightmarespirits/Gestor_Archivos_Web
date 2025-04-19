@@ -146,6 +146,36 @@
                       return-object
                     ></v-autocomplete>
                   </v-col>
+
+                  <!-- Filtro por departamento -->
+                  <v-col cols="12" md="3">
+                    <v-select
+                      v-model="selectedDepartment"
+                      :items="departments"
+                      item-title="title"
+                      item-value="value"
+                      label="Departamento"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      prepend-inner-icon="mdi-office-building"
+                    ></v-select>
+                  </v-col>
+
+                  <!-- Filtro por estado de expiración -->
+                  <v-col cols="12" md="3">
+                    <v-select
+                      v-model="selectedExpirationStatus"
+                      :items="expirationStatusOptions"
+                      item-title="title"
+                      item-value="value"
+                      label="Estado de expiración"
+                      variant="outlined"
+                      density="comfortable"
+                      hide-details
+                      prepend-inner-icon="mdi-calendar-alert"
+                    ></v-select>
+                  </v-col>
                 </v-row>
               </div>
             </v-expand-transition>
@@ -169,7 +199,7 @@
         <!-- Resultados de la búsqueda -->
         <v-card>
           <v-card-title class="d-flex justify-space-between align-center">
-            <span>Resultados ({{ documents.length }})</span>
+            <span>Resultados ({{ filteredDocuments.length }})</span>
             <v-btn
               color="success"
               prepend-icon="mdi-plus"
@@ -181,12 +211,15 @@
           
           <v-card-text>
             <v-data-table
-              v-if="!loading"
               :headers="headers"
-              :items="documents"
-              :items-per-page="10"
+              :items="filteredDocuments"
+              :search="searchTitle"
               :loading="loading"
+              :items-per-page="10"
               class="elevation-1"
+              hover
+              :no-data-text="'No se encontraron documentos'"
+              :no-results-text="'No se encontraron resultados'"
             >
               <!-- Columna de título con enlace a detalle -->
               <template v-slot:item.title="{ item }">
@@ -201,92 +234,72 @@
               
               <!-- Columna de tipo de documento -->
               <template v-slot:item.type="{ item }">
-                <v-chip size="small" color="info" variant="outlined">
-                  {{ item.type ? item.type.name : 'Sin tipo' }}
+                <v-chip
+                  v-if="item.type"
+                  color="primary"
+                  size="small"
+                >
+                  {{ item.type.name }}
+                </v-chip>
+                <v-chip
+                  v-else
+                  color="grey"
+                  size="small"
+                >
+                  Sin tipo
                 </v-chip>
               </template>
-              
-              <!-- Columna de fecha formateada -->
+
               <template v-slot:item.uploadDate="{ item }">
-                {{ formatDate(item.uploadDate) }}
-              </template>
-              
-              <!-- Columna de etiquetas -->
-              <template v-slot:item.tags="{ item }">
-                <div class="d-flex flex-wrap gap-1">
-                  <v-chip
-                    v-for="tag in item.tags"
-                    :key="tag.id"
-                    size="x-small"
-                    color="secondary"
-                    class="mr-1"
-                  >
-                    {{ tag.name }}
-                  </v-chip>
-                  <span v-if="!item.tags || item.tags.length === 0">
-                    Sin etiquetas
-                  </span>
-                </div>
+                {{ new Date(item.uploadDate).toLocaleDateString() }}
               </template>
               
               <!-- Columna de acciones -->
               <template v-slot:item.actions="{ item }">
-                <div class="d-flex">
-                  <v-tooltip text="Ver detalles">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        icon="mdi-eye"
-                        size="small"
-                        variant="text"
-                        color="info"
-                        class="mr-1"
-                        @click="viewDocumentDetails(item.id)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  
-                  <v-tooltip text="Descargar">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        icon="mdi-download"
-                        size="small"
-                        variant="text"
-                        color="primary"
-                        class="mr-1"
-                        @click="downloadDocument(item.id)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  
-                  <v-tooltip text="Editar">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        icon="mdi-pencil"
-                        size="small"
-                        variant="text"
-                        color="warning"
-                        class="mr-1"
-                        @click="editDocument(item.id)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                  
-                  <v-tooltip text="Eliminar">
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        v-bind="props"
-                        icon="mdi-delete"
-                        size="small"
-                        variant="text"
-                        color="error"
-                        @click="confirmDeleteDocument(item)"
-                      ></v-btn>
-                    </template>
-                  </v-tooltip>
-                </div>
+                <v-tooltip text="Ver documento" location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon
+                      variant="text"
+                      color="info"
+                      v-bind="props"
+                      @click="viewDocumentDetails(item.id)"
+                      :disabled="loading"
+                    >
+                      <v-icon>mdi-eye</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                
+                <v-tooltip text="Descargar documento" location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon
+                      variant="text"
+                      color="success"
+                      v-bind="props"
+                      @click="downloadDocument(item.id)"
+                      :disabled="loading"
+                    >
+                      <v-icon>mdi-download</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
+                
+                <v-tooltip text="Editar documento" location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      icon
+                      variant="text"
+                      color="primary"
+                      v-bind="props"
+                      @click="editDocument(item.id)"
+                      :disabled="loading"
+                    >
+                      <v-icon>mdi-pencil</v-icon>
+                    </v-btn>
+                  </template>
+                </v-tooltip>
               </template>
             </v-data-table>
             
@@ -298,7 +311,7 @@
             
             <!-- Mensaje cuando no hay resultados -->
             <v-alert
-              v-if="!loading && documents.length === 0"
+              v-if="!loading && filteredDocuments.length === 0"
               type="info"
               text="No se encontraron documentos con los criterios de búsqueda especificados."
               class="mt-4"
@@ -307,40 +320,6 @@
         </v-card>
       </v-col>
     </v-row>
-    
-    <!-- Diálogo de confirmación para eliminar documento -->
-    <v-dialog v-model="deleteDialog" max-width="500px">
-      <v-card>
-        <v-card-title class="text-h5">Confirmar eliminación</v-card-title>
-        <v-card-text>
-          ¿Está seguro que desea eliminar el documento "{{ documentToDelete?.title }}"?
-          <v-alert
-            type="warning"
-            variant="tonal"
-            class="mt-3"
-          >
-            Esta acción no se puede deshacer.
-          </v-alert>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="deleteDialog = false"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn
-            color="error"
-            variant="elevated"
-            @click="deleteDocument"
-          >
-            Eliminar
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
     
     <!-- Snackbar para notificaciones -->
     <v-snackbar
@@ -369,7 +348,6 @@ import { useAuthStore } from '@/store/auth';
 
 // Stores
 const documentsStore = useDocumentsStore();
-const authStore = useAuthStore();
 const router = useRouter();
 
 // Estado del componente
@@ -395,16 +373,125 @@ const snackbar = ref({
   color: 'success',
   timeout: 3000
 });
+const selectedDepartment = ref(null);
+const selectedExpirationStatus = ref(null);
+const departments = ref([]);
+const adminPassword = ref('');
+const deleteFormValid = ref(false);
 
 // Columnas de la tabla
 const headers = [
-  { title: 'Título', key: 'title', align: 'start', sortable: true },
+  { title: 'ID', key: 'id', align: 'start', sortable: true },
+  { title: 'Título', key: 'title', align: 'start', sortable: true, maxWidth: 200 },
   { title: 'Tipo', key: 'type', align: 'center', sortable: true },
-  { title: 'Fecha', key: 'uploadDate', align: 'center', sortable: true },
+  { title: 'Versión', key: 'versionNumber', align: 'center', sortable: true },
+  { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
   { title: 'Autor', key: 'author.username', align: 'center', sortable: true },
-  { title: 'Etiquetas', key: 'tags', align: 'center', sortable: false },
-  { title: 'Acciones', key: 'actions', align: 'center', sortable: false }
+  { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
+
+// Opciones de estado de expiración
+const expirationStatusOptions = [
+  { title: 'Expirados', value: 'expired' },
+  { title: 'Por expirar', value: 'expiring-soon' },
+  { title: 'Vigentes', value: 'valid' },
+  { title: 'Sin expiración', value: 'no-expiration' }
+];
+
+// Computed property para documentos filtrados
+const filteredDocuments = computed(() => {
+  let result = [...documents.value];
+  
+  // Filtrar por título
+  if (searchTitle.value.trim()) {
+    const searchLower = searchTitle.value.toLowerCase().trim();
+    result = result.filter(doc => 
+      doc.title.toLowerCase().includes(searchLower) ||
+      (doc.description && doc.description.toLowerCase().includes(searchLower))
+    );
+  }
+  
+  // Filtrar por tipo de documento
+  if (selectedDocumentType.value) {
+    result = result.filter(doc => 
+      doc.type && doc.type.id === selectedDocumentType.value.id
+    );
+  }
+  
+  // Filtrar por etiqueta
+  if (selectedTag.value) {
+    result = result.filter(doc => 
+      doc.tags && doc.tags.some(tag => tag.id === selectedTag.value.id)
+    );
+  }
+  
+  // Filtrar por autor
+  if (selectedAuthor.value) {
+    result = result.filter(doc => 
+      doc.author && doc.author.id === selectedAuthor.value.id
+    );
+  }
+  
+  // Filtrar por rango de fechas
+  if (dateFrom.value) {
+    const fromDate = new Date(dateFrom.value);
+    result = result.filter(doc => new Date(doc.uploadDate) >= fromDate);
+  }
+  
+  if (dateTo.value) {
+    const toDate = new Date(dateTo.value);
+    toDate.setHours(23, 59, 59, 999);
+    result = result.filter(doc => new Date(doc.uploadDate) <= toDate);
+  }
+  
+  // Filtrar por metadatos
+  result = result.filter(doc => {
+    if (!doc.metadata) return true;
+    
+    // Filtrar por departamento
+    if (selectedDepartment.value && 
+        doc.metadata.department !== selectedDepartment.value) {
+      return false;
+    }
+    
+    // Filtrar por palabras clave
+    if (searchTitle.value.trim() && doc.metadata.keywords) {
+      const keywords = doc.metadata.keywords.toLowerCase();
+      if (!keywords.includes(searchTitle.value.toLowerCase().trim())) {
+        return false;
+      }
+    }
+    
+    // Filtrar por estado de expiración
+    if (selectedExpirationStatus.value) {
+      const today = new Date();
+      const expirationDate = doc.metadata.expirationDate ? 
+        new Date(doc.metadata.expirationDate) : null;
+      
+      switch (selectedExpirationStatus.value) {
+        case 'expired':
+          if (!expirationDate || expirationDate > today) return false;
+          break;
+        case 'expiring-soon':
+          if (!expirationDate) return false;
+          const thirtyDaysFromNow = new Date();
+          thirtyDaysFromNow.setDate(today.getDate() + 30);
+          if (expirationDate > thirtyDaysFromNow || expirationDate < today) return false;
+          break;
+        case 'valid':
+          if (!expirationDate || expirationDate <= today) return false;
+          break;
+        case 'no-expiration':
+          if (expirationDate) return false;
+          break;
+      }
+    }
+    
+    return true;
+  });
+  
+  return result;
+});
 
 // Cargar datos iniciales
 onMounted(async () => {
@@ -420,8 +507,17 @@ onMounted(async () => {
     // Cargar etiquetas
     await fetchTags();
     
-    // TODO: Cargar autores (implementar cuando esté disponible en el store)
-    // await fetchAuthors();
+    // Extraer departamentos únicos de los documentos
+    const deptSet = new Set();
+    documents.value.forEach(doc => {
+      if (doc.metadata && doc.metadata.department) {
+        deptSet.add(doc.metadata.department);
+      }
+    });
+    departments.value = Array.from(deptSet).map(dept => ({
+      title: dept,
+      value: dept
+    }));
     
   } catch (error) {
     showError('Error al cargar los datos iniciales: ' + error.message);
@@ -431,10 +527,8 @@ onMounted(async () => {
 });
 
 // Observar cambios en los filtros para actualizar la búsqueda
-watch([selectedDocumentType, selectedTag, selectedAuthor, dateFrom, dateTo], () => {
-  if (selectedDocumentType.value || selectedTag.value || selectedAuthor.value || dateFrom.value || dateTo.value) {
-    searchDocuments();
-  }
+watch([selectedDocumentType, selectedTag, selectedAuthor, dateFrom, dateTo, selectedDepartment, selectedExpirationStatus], () => {
+  searchDocuments();
 });
 
 // Métodos
@@ -524,6 +618,8 @@ function resetFilters() {
   selectedAuthor.value = null;
   dateFrom.value = null;
   dateTo.value = null;
+  selectedDepartment.value = null;
+  selectedExpirationStatus.value = null;
   fetchDocuments();
 }
 
@@ -535,35 +631,21 @@ function editDocument(id) {
   router.push(`/documents/${id}/edit`);
 }
 
-function downloadDocument(id) {
-  const downloadUrl = documentsStore.getDocumentDownloadUrl(id);
-  window.open(downloadUrl, '_blank');
+async function downloadDocument(id) {
+  try {
+    const downloadUrl = documentsStore.getDocumentDownloadUrl(id);
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      throw new Error(`Error al descargar: ${response.statusText}`);
+    }
+    window.open(downloadUrl, '_blank');
+  } catch (error) {
+    showError('Error al descargar el documento: ' + error.message);
+  }
 }
 
 function navigateToCreateDocument() {
   router.push('/documents/create');
-}
-
-function confirmDeleteDocument(document) {
-  documentToDelete.value = document;
-  deleteDialog.value = true;
-}
-
-async function deleteDocument() {
-  if (!documentToDelete.value) return;
-  
-  try {
-    loading.value = true;
-    await documentsStore.deleteDocument(documentToDelete.value.id);
-    showSuccess(`Documento "${documentToDelete.value.title}" eliminado correctamente.`);
-    deleteDialog.value = false;
-    documentToDelete.value = null;
-    await fetchDocuments(); // Recargar la lista
-  } catch (error) {
-    showError('Error al eliminar el documento: ' + error.message);
-  } finally {
-    loading.value = false;
-  }
 }
 
 // Utilidades
@@ -601,5 +683,10 @@ function showError(message) {
 <style scoped>
 .gap-1 {
   gap: 4px;
+}
+
+.v-data-table {
+  border-radius: 8px;
+  overflow: hidden;
 }
 </style>
