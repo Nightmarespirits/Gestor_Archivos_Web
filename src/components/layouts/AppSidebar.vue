@@ -82,6 +82,15 @@ const drawerModel = computed({
 
 const authStore = useAuthStore();
 
+const navigationItems = [
+  {
+    title: 'Historial de Actividades',
+    icon: 'mdi-history',
+    to: '/activity-logs',
+    requiredRole: 'ADMIN'
+  }
+];
+
 function handleLogout() {
   authStore.logout();
 }

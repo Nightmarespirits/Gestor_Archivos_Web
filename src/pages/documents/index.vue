@@ -141,8 +141,6 @@ const router = useRouter();
 
 // Estado
 const search = ref('');
-const deleteDialog = ref(false);
-const documentToDelete = ref(null);
 const snackbar = ref({
   show: false,
   text: '',
@@ -154,17 +152,18 @@ const snackbar = ref({
 const headers = [
   { title: 'ID', key: 'id', align: 'start', sortable: true },
   { title: 'Título', key: 'title', align: 'start', sortable: true , maxWidth: 200 },
-  { title: 'Tipo', key: 'type', align: 'center', sortable: true },
+  { title: 'Tipo', key: 'documentType', align: 'center', sortable: true },
   { title: 'Versión', key: 'versionNumber', align: 'center', sortable: true },
   { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
-  { title: 'Autor', key: 'author.username', align: 'center', sortable: true },
+  { title: 'Autor', key: 'authorName', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
 // Cargar documentos al montar el componente
 onMounted(async () => {
   try {
-    await documentsStore.fetchAllDocuments();
+    await documentsStore.fetchDocuments();
+    console.log('Documentos cargados:', JSON.stringify(documentsStore.documents, null, 2));
   } catch (error) {
     showSnackbar(`Error al cargar documentos: ${error.message}`, 'error');
   }

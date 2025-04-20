@@ -4,8 +4,10 @@ import com.ns.iestpffaaarchives.domain.entity.Document;
 import com.ns.iestpffaaarchives.domain.entity.Tag;
 import com.ns.iestpffaaarchives.infrastructure.web.dto.DocumentDTO;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.HashSet;
+import java.util.ArrayList;
 
 public class DocumentMapper {
     
@@ -36,19 +38,22 @@ public class DocumentMapper {
             dto.setDocumentTypeId(document.getType().getId());
         }
         
-        // Set tags
-        if (document.getTags() != null) {
-            dto.setTags(document.getTags().stream()
+        // Set tags - ensure null safety and proper mapping
+        Set<String> tagNames = document.getTags() != null ? 
+            document.getTags().stream()
+                .filter(tag -> tag != null && tag.getName() != null)
                 .map(Tag::getName)
-                .collect(Collectors.toSet()));
-        } else {
-            dto.setTags(new HashSet<>());
-        }
+                .collect(Collectors.toSet()) :
+            new HashSet<>();
+        dto.setTags(tagNames);
         
         return dto;
     }
     
     public static List<DocumentDTO> toDTOList(List<Document> documents) {
+        if (documents == null) {
+            return new ArrayList<>();
+        }
         return documents.stream()
             .map(DocumentMapper::toDTO)
             .collect(Collectors.toList());

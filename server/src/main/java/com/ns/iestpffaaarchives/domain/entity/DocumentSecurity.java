@@ -16,7 +16,7 @@ public class DocumentSecurity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(mappedBy = "security")
+    @OneToOne(mappedBy = "security", cascade = CascadeType.ALL)
     private Document document;
 
     @Column(name = "encryption_status")

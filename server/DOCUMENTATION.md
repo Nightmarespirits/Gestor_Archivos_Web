@@ -46,14 +46,14 @@ Base URL: `/api/auth`
       "id": 1,
       "name": "string"
     },
-    "createdAt": "2025-03-26T18:00:00"
+    "createdAt": "2025-04-20T10:00:00"
   }
   ```
 - **Respuestas de Error**:
   - 400 Bad Request: "Error: El nombre de usuario ya está en uso"
   - 400 Bad Request: "Error: El correo electrónico ya está en uso"
   - 400 Bad Request: "Error: El rol especificado no existe"
-  - 500 Internal Server Error: "Error al registrar el usuario: {mensaje de error}"
+  - 500 Internal Server Error
 
 #### Inicio de Sesión
 - **Endpoint**: `POST /api/auth/login`
@@ -90,8 +90,8 @@ Base URL: `/api/users`
 
 #### Obtener Todos los Usuarios
 - **Endpoint**: `GET /api/users`
-- **Descripción**: Obtiene la lista de todos los usuarios
-- **Acceso**: Solo usuarios con rol ADMIN
+- **Descripción**: Obtiene una lista de todos los usuarios
+- **Autorización**: Requiere rol ADMIN
 - **Respuesta Exitosa** (200 OK):
   ```json
   [
@@ -104,34 +104,17 @@ Base URL: `/api/users`
       "role": {
         "id": 1,
         "name": "string"
-      },
-      "createdAt": "2025-03-26T18:00:00"
+      }
     }
   ]
   ```
-- **Respuestas de Error**:
-  - 403 Forbidden: No tienes permisos para acceder a este recurso
 
 #### Obtener Usuario por ID
 - **Endpoint**: `GET /api/users/{id}`
-- **Descripción**: Obtiene un usuario por su ID
+- **Descripción**: Obtiene un usuario específico por su ID
 - **Parámetros de Ruta**:
   - `id`: ID del usuario
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "username": "string",
-    "email": "string",
-    "fullName": "string",
-    "status": true,
-    "role": {
-      "id": 1,
-      "name": "string"
-    },
-    "createdAt": "2025-03-26T18:00:00"
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Objeto usuario
 - **Respuestas de Error**:
   - 404 Not Found
 
@@ -140,28 +123,14 @@ Base URL: `/api/users`
 - **Descripción**: Obtiene un usuario por su nombre de usuario
 - **Parámetros de Ruta**:
   - `username`: Nombre de usuario
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "username": "string",
-    "email": "string",
-    "fullName": "string",
-    "status": true,
-    "role": {
-      "id": 1,
-      "name": "string"
-    },
-    "createdAt": "2025-03-26T18:00:00"
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Objeto usuario
 - **Respuestas de Error**:
   - 404 Not Found
 
 #### Actualizar Usuario
 - **Endpoint**: `PUT /api/users/{id}`
-- **Descripción**: Actualiza la información de un usuario
-- **Acceso**: Solo usuarios con rol ADMIN
+- **Descripción**: Actualiza un usuario existente
+- **Autorización**: Requiere rol ADMIN
 - **Parámetros de Ruta**:
   - `id`: ID del usuario
 - **Datos de Entrada**:
@@ -173,29 +142,13 @@ Base URL: `/api/users`
     "roleId": 1
   }
   ```
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "username": "string",
-    "email": "string",
-    "fullName": "string",
-    "status": true,
-    "role": {
-      "id": 1,
-      "name": "string"
-    },
-    "roleId": 1,
-    "createdAt": "2025-03-26T18:00:00"
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Usuario actualizado
 - **Respuestas de Error**:
-  - 403 Forbidden: No tienes permisos para realizar esta acción
-  - 404 Not Found: Usuario no encontrado
+  - 404 Not Found
 
 #### Eliminar Usuario
 - **Endpoint**: `DELETE /api/users/{id}`
-- **Descripción**: Elimina un usuario del sistema
+- **Descripción**: Elimina un usuario
 - **Parámetros de Ruta**:
   - `id`: ID del usuario
 - **Respuesta Exitosa** (204 No Content)
@@ -210,7 +163,7 @@ Base URL: `/api/documents`
 
 #### Obtener Todos los Documentos
 - **Endpoint**: `GET /api/documents`
-- **Descripción**: Obtiene la lista de todos los documentos no eliminados
+- **Descripción**: Obtiene una lista de todos los documentos
 - **Respuesta Exitosa** (200 OK):
   ```json
   [
@@ -220,249 +173,97 @@ Base URL: `/api/documents`
       "description": "string",
       "filePath": "string",
       "format": "string",
-      "uploadDate": "2025-03-26T18:00:00",
       "author": {
         "id": 1,
-        "username": "string"
+        "username": "string",
+        "fullName": "string"
       },
       "type": {
         "id": 1,
         "name": "string"
       },
-      "isDeleted": false,
-      "versionNumber": 1,
       "tags": [
         {
           "id": 1,
           "name": "string"
         }
-      ]
+      ],
+      "createdAt": "2025-04-20T10:00:00",
+      "updatedAt": "2025-04-20T10:00:00",
+      "deleted": false
     }
   ]
   ```
+- **Respuestas de Error**:
+  - 204 No Content: No hay documentos
+  - 500 Internal Server Error
 
 #### Obtener Documento por ID
 - **Endpoint**: `GET /api/documents/{id}`
-- **Descripción**: Obtiene un documento por su ID
+- **Descripción**: Obtiene un documento específico por su ID
 - **Parámetros de Ruta**:
   - `id`: ID del documento
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "title": "string",
-    "description": "string",
-    "filePath": "string",
-    "format": "string",
-    "uploadDate": "2025-03-26T18:00:00",
-    "author": {
-      "id": 1,
-      "username": "string"
-    },
-    "type": {
-      "id": 1,
-      "name": "string"
-    },
-    "isDeleted": false,
-    "versionNumber": 1,
-    "tags": [
-      {
-        "id": 1,
-        "name": "string"
-      }
-    ]
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Objeto documento
 - **Respuestas de Error**:
   - 404 Not Found
 
 #### Buscar Documentos por Título
-- **Endpoint**: `GET /api/documents/search?title={title}`
+- **Endpoint**: `GET /api/documents/search`
 - **Descripción**: Busca documentos por título
 - **Parámetros de Consulta**:
-  - `title`: Texto a buscar en el título
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  [
-    {
-      "id": 1,
-      "title": "string",
-      "description": "string",
-      "filePath": "string",
-      "format": "string",
-      "uploadDate": "2025-03-26T18:00:00",
-      "author": {
-        "id": 1,
-        "username": "string"
-      },
-      "type": {
-        "id": 1,
-        "name": "string"
-      },
-      "isDeleted": false,
-      "versionNumber": 1,
-      "tags": [
-        {
-          "id": 1,
-          "name": "string"
-        }
-      ]
-    }
-  ]
-  ```
+  - `title`: Título a buscar
+- **Respuesta Exitosa** (200 OK): Lista de documentos
+- **Respuestas de Error**:
+  - 500 Internal Server Error
 
 #### Obtener Documentos por Etiqueta
 - **Endpoint**: `GET /api/documents/tag/{tagName}`
-- **Descripción**: Obtiene documentos por nombre de etiqueta
+- **Descripción**: Obtiene documentos asociados a una etiqueta específica
 - **Parámetros de Ruta**:
   - `tagName`: Nombre de la etiqueta
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  [
-    {
-      "id": 1,
-      "title": "string",
-      "description": "string",
-      "filePath": "string",
-      "format": "string",
-      "uploadDate": "2025-03-26T18:00:00",
-      "author": {
-        "id": 1,
-        "username": "string"
-      },
-      "type": {
-        "id": 1,
-        "name": "string"
-      },
-      "isDeleted": false,
-      "versionNumber": 1,
-      "tags": [
-        {
-          "id": 1,
-          "name": "string"
-        }
-      ]
-    }
-  ]
-  ```
+- **Respuesta Exitosa** (200 OK): Lista de documentos
+- **Respuestas de Error**:
+  - 500 Internal Server Error
 
 #### Obtener Documentos por Autor
 - **Endpoint**: `GET /api/documents/author/{authorId}`
-- **Descripción**: Obtiene documentos por ID de autor
+- **Descripción**: Obtiene documentos de un autor específico
 - **Parámetros de Ruta**:
   - `authorId`: ID del autor
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  [
-    {
-      "id": 1,
-      "title": "string",
-      "description": "string",
-      "filePath": "string",
-      "format": "string",
-      "uploadDate": "2025-03-26T18:00:00",
-      "author": {
-        "id": 1,
-        "username": "string"
-      },
-      "type": {
-        "id": 1,
-        "name": "string"
-      },
-      "isDeleted": false,
-      "versionNumber": 1,
-      "tags": [
-        {
-          "id": 1,
-          "name": "string"
-        }
-      ]
-    }
-  ]
-  ```
+- **Respuesta Exitosa** (200 OK): Lista de documentos
 - **Respuestas de Error**:
   - 404 Not Found
 
 #### Crear Documento
 - **Endpoint**: `POST /api/documents`
-- **Descripción**: Crea un nuevo documento con archivo adjunto, metadatos y etiquetas
-- **Tipo de Contenido**: `multipart/form-data`
-- **Datos de Entrada**:
+- **Descripción**: Crea un nuevo documento
+- **Content-Type**: `multipart/form-data`
+- **Parámetros del Formulario**:
   - `file`: Archivo a subir
   - `title`: Título del documento
   - `description`: Descripción del documento
   - `authorId`: ID del autor
   - `type`: Tipo de documento
-  - `keywords`: (Opcional) Palabras clave para el documento
-  - `department`: (Opcional) Departamento al que pertenece el documento
-  - `expirationDate`: (Opcional) Fecha de expiración del documento (formato: YYYY-MM-DD)
-  - `tags`: (Opcional) Lista de etiquetas para el documento
-- **Respuesta Exitosa** (201 Created):
-  ```json
-  {
-    "id": 1,
-    "title": "string",
-    "description": "string",
-    "filePath": "string",
-    "format": "string",
-    "uploadDate": "2025-03-26T18:00:00",
-    "author": {
-      "id": 1,
-      "username": "string"
-    },
-    "type": {
-      "id": 1,
-      "name": "string"
-    },
-    "isDeleted": false,
-    "versionNumber": 1,
-    "metadata": {
-      "id": 1,
-      "keywords": "string",
-      "department": "string",
-      "expirationDate": "2025-12-31"
-    },
-    "tags": [
-      {
-        "id": 1,
-        "name": "string"
-      }
-    ]
-  }
-  ```
-- **Ejemplo de Uso con cURL**:
-  ```bash
-  curl -X POST "http://localhost:8080/api/documents" \
-    -H "Authorization: Bearer <tu-token>" \
-    -F "file=@/ruta/al/archivo.pdf" \
-    -F "title=Documento de Prueba" \
-    -F "description=Esta es una descripción de prueba" \
-    -F "authorId=1" \
-    -F "type=REPORT" \
-    -F "keywords=palabra1, palabra2" \
-    -F "department=RR.HH." \
-    -F "expirationDate=2025-12-31" \
-    -F "tags=etiqueta1,etiqueta2"
-  ```
+  - `tags`: Lista de nombres de etiquetas (opcional)
+- **Respuesta Exitosa** (201 Created): Documento creado
 - **Respuestas de Error**:
-  - 400 Bad Request: "Error: Archivo no proporcionado"
-  - 400 Bad Request: "Error: Tipo de documento no válido"
-  - 404 Not Found: "Error: Autor no encontrado"
-  - 500 Internal Server Error: "Error al guardar el archivo"
+  - 400 Bad Request: Archivo vacío o datos inválidos
+  - 404 Not Found: Autor no encontrado
+  - 500 Internal Server Error
 
 #### Descargar Documento
 - **Endpoint**: `GET /api/documents/download/{id}`
-- **Descripción**: Descarga un documento por su ID
+- **Descripción**: Descarga un documento específico
 - **Parámetros de Ruta**:
   - `id`: ID del documento
-- **Respuesta Exitosa**: Archivo para descargar
+- **Respuesta Exitosa** (200 OK): Archivo para descarga
 - **Respuestas de Error**:
   - 404 Not Found
   - 500 Internal Server Error
 
 #### Actualizar Documento
 - **Endpoint**: `PUT /api/documents/{id}`
-- **Descripción**: Actualiza la información de un documento
+- **Descripción**: Actualiza un documento existente
 - **Parámetros de Ruta**:
   - `id`: ID del documento
 - **Datos de Entrada**:
@@ -470,142 +271,30 @@ Base URL: `/api/documents`
   {
     "title": "string",
     "description": "string",
-    "tags": [
-      {
-        "id": 1,
-        "name": "string"
-      }
-    ]
+    "tags": ["string"]
   }
   ```
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "title": "string",
-    "description": "string",
-    "filePath": "string",
-    "format": "string",
-    "uploadDate": "2025-03-26T18:00:00",
-    "author": {
-      "id": 1,
-      "username": "string"
-    },
-    "type": {
-      "id": 1,
-      "name": "string"
-    },
-    "isDeleted": false,
-    "versionNumber": 1,
-    "tags": [
-      {
-        "id": 1,
-        "name": "string"
-      }
-    ]
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Documento actualizado
 - **Respuestas de Error**:
   - 404 Not Found
 
-#### Eliminar Documento (Soft Delete)
+#### Eliminación Suave de Documento
 - **Endpoint**: `DELETE /api/documents/{id}`
-- **Descripción**: Marca un documento como eliminado (soft delete)
+- **Descripción**: Marca un documento como eliminado (eliminación suave)
 - **Parámetros de Ruta**:
   - `id`: ID del documento
 - **Respuesta Exitosa** (204 No Content)
 - **Respuestas de Error**:
   - 404 Not Found
 
-#### Eliminar Documento Permanentemente
+#### Eliminación Permanente de Documento
 - **Endpoint**: `DELETE /api/documents/permanent/{id}`
-- **Descripción**: Elimina permanentemente un documento y su archivo físico
+- **Descripción**: Elimina permanentemente un documento y su archivo asociado
 - **Parámetros de Ruta**:
   - `id`: ID del documento
 - **Respuesta Exitosa** (204 No Content)
 - **Respuestas de Error**:
   - 404 Not Found
-
-### Instrucciones de Uso para Documentos
-
-#### Creación de Documentos
-
-1. **Preparación del Archivo**:
-   - Asegúrate de que el archivo que deseas subir esté listo y sea de un formato permitido (PDF, DOCX, XLSX, etc.)
-   - El tamaño del archivo no debe exceder el límite configurado en el servidor
-
-2. **Metadatos Requeridos**:
-   - `title`: Nombre descriptivo del documento
-   - `description`: Descripción detallada del contenido
-   - `authorId`: ID del usuario que está subiendo el documento
-   - `type`: Tipo de documento (ej: REPORT, CONTRACT, MEMO, etc.)
-
-3. **Metadatos Opcionales**:
-   - `keywords`: Palabras clave que facilitan la búsqueda
-   - `department`: Departamento al que pertenece el documento
-   - `expirationDate`: Fecha de vencimiento del documento
-   - `tags`: Lista de etiquetas para categorizar el documento
-
-4. **Proceso de Subida**:
-   - Utiliza una solicitud POST multipart/form-data
-   - Incluye el token de autenticación en el encabezado
-   - Envía todos los campos requeridos y opcionales
-   - El servidor generará un nombre único para el archivo
-   - Se crearán automáticamente los metadatos y se asociarán las etiquetas
-
-5. **Verificación**:
-   - Confirma que la respuesta tenga código 201 (Created)
-   - Guarda el ID del documento devuelto para futuras referencias
-   - Verifica que los metadatos y etiquetas se hayan guardado correctamente
-
-#### Gestión de Documentos
-
-1. **Búsqueda de Documentos**:
-   - Por título: `GET /api/documents/search?title=palabra`
-   - Por etiqueta: `GET /api/documents/tag/nombre-etiqueta`
-   - Por autor: `GET /api/documents/author/1`
-
-2. **Actualización de Documentos**:
-   - Solo se pueden actualizar metadatos y etiquetas
-   - No se puede modificar el archivo original
-   - Se mantiene un control de versiones automático
-
-3. **Eliminación de Documentos**:
-   - Soft Delete: Marca el documento como eliminado pero lo mantiene en el sistema
-   - Hard Delete: Elimina el documento y el archivo físico permanentemente
-   - Se requieren permisos especiales para eliminación permanente
-
-4. **Descarga de Documentos**:
-   - Utiliza el endpoint de descarga con el ID del documento
-   - Se verifican los permisos antes de permitir la descarga
-   - El archivo se entrega con su nombre original
-
-#### Mejores Prácticas
-
-1. **Nombrado de Documentos**:
-   - Usa títulos descriptivos y concisos
-   - Evita caracteres especiales en los nombres
-   - Incluye información relevante como fecha o versión
-
-2. **Uso de Etiquetas**:
-   - Utiliza etiquetas consistentes
-   - Crea un sistema de categorización claro
-   - No abuses del número de etiquetas por documento
-
-3. **Metadatos**:
-   - Completa todos los campos de metadatos posibles
-   - Usa palabras clave relevantes
-   - Mantén actualizados los metadatos
-
-4. **Seguridad**:
-   - Verifica los permisos antes de cada operación
-   - No compartas tokens de acceso
-   - Reporta cualquier comportamiento sospechoso
-
-5. **Mantenimiento**:
-   - Revisa periódicamente los documentos expirados
-   - Actualiza los metadatos cuando sea necesario
-   - Realiza copias de seguridad regulares
 
 ## Tipos de Documentos
 
@@ -613,9 +302,9 @@ Base URL: `/api/documents`
 
 Base URL: `/api/document-types`
 
-#### Obtener Todos los Tipos de Documentos
+#### Obtener Todos los Tipos de Documento
 - **Endpoint**: `GET /api/document-types`
-- **Descripción**: Obtiene la lista de todos los tipos de documentos
+- **Descripción**: Obtiene una lista de todos los tipos de documento
 - **Respuesta Exitosa** (200 OK):
   ```json
   [
@@ -629,17 +318,10 @@ Base URL: `/api/document-types`
 
 #### Obtener Tipo de Documento por ID
 - **Endpoint**: `GET /api/document-types/{id}`
-- **Descripción**: Obtiene un tipo de documento por su ID
+- **Descripción**: Obtiene un tipo de documento específico por su ID
 - **Parámetros de Ruta**:
   - `id`: ID del tipo de documento
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "name": "string",
-    "description": "string"
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Objeto tipo de documento
 - **Respuestas de Error**:
   - 404 Not Found
 
@@ -653,40 +335,20 @@ Base URL: `/api/document-types`
     "description": "string"
   }
   ```
-- **Respuesta Exitosa** (201 Created):
-  ```json
-  {
-    "id": 1,
-    "name": "string",
-    "description": "string"
-  }
-  ```
+- **Respuesta Exitosa** (201 Created): Tipo de documento creado
 - **Respuestas de Error**:
   - 400 Bad Request: "Error: Ya existe un tipo de documento con ese nombre"
 
 #### Actualizar Tipo de Documento
 - **Endpoint**: `PUT /api/document-types/{id}`
-- **Descripción**: Actualiza un tipo de documento
+- **Descripción**: Actualiza un tipo de documento existente
 - **Parámetros de Ruta**:
   - `id`: ID del tipo de documento
-- **Datos de Entrada**:
-  ```json
-  {
-    "name": "string",
-    "description": "string"
-  }
-  ```
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "name": "string",
-    "description": "string"
-  }
-  ```
+- **Datos de Entrada**: Igual que en creación
+- **Respuesta Exitosa** (200 OK): Tipo de documento actualizado
 - **Respuestas de Error**:
-  - 400 Bad Request: "Error: Ya existe un tipo de documento con ese nombre"
   - 404 Not Found
+  - 400 Bad Request: "Error: Ya existe un tipo de documento con ese nombre"
 
 #### Eliminar Tipo de Documento
 - **Endpoint**: `DELETE /api/document-types/{id}`
@@ -705,46 +367,33 @@ Base URL: `/api/tags`
 
 #### Obtener Todas las Etiquetas
 - **Endpoint**: `GET /api/tags`
-- **Descripción**: Obtiene la lista de todas las etiquetas
+- **Descripción**: Obtiene una lista de todas las etiquetas
 - **Respuesta Exitosa** (200 OK):
   ```json
   [
     {
       "id": 1,
-      "name": "string"
+      "name": "string",
+      "description": "string"
     }
   ]
   ```
 
 #### Obtener Etiqueta por ID
 - **Endpoint**: `GET /api/tags/{id}`
-- **Descripción**: Obtiene una etiqueta por su ID
+- **Descripción**: Obtiene una etiqueta específica por su ID
 - **Parámetros de Ruta**:
   - `id`: ID de la etiqueta
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "name": "string"
-  }
-  ```
+- **Respuesta Exitosa** (200 OK): Objeto etiqueta
 - **Respuestas de Error**:
   - 404 Not Found
 
 #### Buscar Etiquetas por Nombre
-- **Endpoint**: `GET /api/tags/search?name={name}`
+- **Endpoint**: `GET /api/tags/search`
 - **Descripción**: Busca etiquetas por nombre
 - **Parámetros de Consulta**:
-  - `name`: Texto a buscar en el nombre
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  [
-    {
-      "id": 1,
-      "name": "string"
-    }
-  ]
-  ```
+  - `name`: Nombre a buscar
+- **Respuesta Exitosa** (200 OK): Lista de etiquetas
 
 #### Crear Etiqueta
 - **Endpoint**: `POST /api/tags`
@@ -752,40 +401,24 @@ Base URL: `/api/tags`
 - **Datos de Entrada**:
   ```json
   {
-    "name": "string"
+    "name": "string",
+    "description": "string"
   }
   ```
-- **Respuesta Exitosa** (201 Created):
-  ```json
-  {
-    "id": 1,
-    "name": "string"
-  }
-  ```
+- **Respuesta Exitosa** (201 Created): Etiqueta creada
 - **Respuestas de Error**:
   - 400 Bad Request: "Error: Ya existe una etiqueta con ese nombre"
 
 #### Actualizar Etiqueta
 - **Endpoint**: `PUT /api/tags/{id}`
-- **Descripción**: Actualiza una etiqueta
+- **Descripción**: Actualiza una etiqueta existente
 - **Parámetros de Ruta**:
   - `id`: ID de la etiqueta
-- **Datos de Entrada**:
-  ```json
-  {
-    "name": "string"
-  }
-  ```
-- **Respuesta Exitosa** (200 OK):
-  ```json
-  {
-    "id": 1,
-    "name": "string"
-  }
-  ```
+- **Datos de Entrada**: Igual que en creación
+- **Respuesta Exitosa** (200 OK): Etiqueta actualizada
 - **Respuestas de Error**:
-  - 400 Bad Request: "Error: Ya existe una etiqueta con ese nombre"
   - 404 Not Found
+  - 400 Bad Request: "Error: Ya existe una etiqueta con ese nombre"
 
 #### Eliminar Etiqueta
 - **Endpoint**: `DELETE /api/tags/{id}`

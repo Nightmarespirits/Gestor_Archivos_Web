@@ -1,18 +1,24 @@
 package com.ns.iestpffaaarchives.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "documents")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString(exclude = {"type", "tags", "security"})
+@EqualsAndHashCode(of = {"id", "title", "filePath"})
 public class Document {
 
     @Id
@@ -33,17 +39,13 @@ public class Document {
     @Column(name = "upload_date", nullable = false)
     private LocalDateTime uploadDate;
 
-    @ManyToOne
-    @JoinColumn(name = "author_id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    @ManyToOne
-    @JoinColumn(name = "type_id")
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "type_id", nullable = false)
     private DocumentType type;
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "security_id")
-    private DocumentSecurity security;
 
     @Column(name = "is_deleted")
     private Boolean isDeleted = false;
@@ -51,7 +53,11 @@ public class Document {
     @Column(name = "version_number")
     private Integer versionNumber = 1;
 
-    @ManyToMany
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "security_id")
+    private DocumentSecurity security;
+
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "document_tags",
         joinColumns = @JoinColumn(name = "document_id"),
@@ -59,14 +65,14 @@ public class Document {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL)
-    private Set<DocumentVersion> versions = new HashSet<>();
-
-    @OneToMany(mappedBy = "document", cascade = CascadeType.ALL)
-    private Set<AccessControl> accessControls = new HashSet<>();
-
     @PrePersist
     protected void onCreate() {
         uploadDate = LocalDateTime.now();
+        if (isDeleted == null) {
+            isDeleted = false;
+        }
+        if (versionNumber == null) {
+            versionNumber = 1;
+        }
     }
 }

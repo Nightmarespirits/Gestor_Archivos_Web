@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useActivityLogsStore } from './activityLogs';
 
 // Define la URL base de tu API. Ajusta si es necesario.
 const API_BASE_URL = import.meta.env.VITE_BASE_URL; // Access the environment variable directly
@@ -10,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref(JSON.parse(localStorage.getItem('authUser') || '{}'));
   const isInitialized = ref(false); 
   const router = useRouter();
+  const activityLogsStore = useActivityLogsStore();
 
   const isAuthenticated = computed(() => !!token.value);
 
@@ -88,6 +90,12 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('User data to be stored:', userData); // Log para depuración
       setAuthData(data.token, userData);
       isInitialized.value = true; // Marcar como inicializado después de login exitoso
+
+      // Registrar la actividad de login
+      await activityLogsStore.createActivityLog(
+        'LOGIN',
+        `Usuario ${userData.username} ha iniciado sesión`
+      );
       
       // Redirige al dashboard después del login con un pequeño retraso
       // para asegurar que el estado se actualice completamente
@@ -115,7 +123,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout() {
+  async function logout() {
+    // Registrar la actividad de logout antes de limpiar los datos
+    const username = user.value?.username;
+    if (username) {
+      await activityLogsStore.createActivityLog(
+        'LOGOUT',
+        `Usuario ${username} ha cerrado sesión`
+      );
+    }
+
     clearAuthData();
     // No resetear isInitialized porque ya sabemos el estado de la autenticación
     // Redirige a la página de login

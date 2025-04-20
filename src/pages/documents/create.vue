@@ -42,7 +42,7 @@
                     v-model="formData.type"
                     :items="documentTypes"
                     item-title="name"
-                    item-value="id"
+                    item-value="name"
                     label="Tipo de documento *"
                     variant="outlined"
                     :rules="[v => !!v || 'El tipo de documento es obligatorio']"
@@ -230,9 +230,15 @@ async function submitForm() {
   try {
     loading.value = true;
     
-    // Crear FormData para enviar el archivo
+    // Crear FormData directamente aquí en lugar de pasar el objeto
     const formDataToSend = new FormData();
-    formDataToSend.append('file', formData.value.file);
+    
+    // Agregar el archivo primero
+    if (formData.value.file) {
+      formDataToSend.append('file', formData.value.file[0] || formData.value.file);
+    }
+    
+    // Agregar el resto de campos
     formDataToSend.append('title', formData.value.title);
     formDataToSend.append('description', formData.value.description || '');
     formDataToSend.append('authorId', formData.value.authorId);
@@ -240,9 +246,8 @@ async function submitForm() {
     
     // Agregar etiquetas si existen
     if (formData.value.tags && formData.value.tags.length > 0) {
-      formData.value.tags.forEach((tag, index) => {
-        formDataToSend.append(`tags[${index}].id`, tag.id);
-        formDataToSend.append(`tags[${index}].name`, tag.name);
+      formData.value.tags.forEach(tag => {
+        formDataToSend.append('tags', tag.name);
       });
     }
     
@@ -251,26 +256,11 @@ async function submitForm() {
     
     showSuccess('Documento creado correctamente.');
     
-    // Redirigir a la página de detalles del documento después de añadir metadatos
-    if (newDocument.id) {
-      try {
-        // Crear metadatos básicos
-        const metadata = {
-          keywords: formData.value.title.split(' ').join(','),
-          department: 'General'
-        };
-        
-        await documentsStore.createMetadata(newDocument.id, metadata);
-        
-        setTimeout(() => {
-          router.push(`/documents/${newDocument.id}`);
-        }, 1500);
-      } catch (metadataError) {
-        console.error('Error al crear metadatos:', metadataError);
-        // Continuar con la redirección aunque fallen los metadatos
-        router.push(`/documents/${newDocument.id}`);
-      }
-    }
+    // Redirigir usando name-based routing
+    router.push({ 
+      name: 'DocumentDetail',
+      params: { id: newDocument.id }
+    });
     
   } catch (error) {
     showError('Error al crear el documento: ' + error.message);

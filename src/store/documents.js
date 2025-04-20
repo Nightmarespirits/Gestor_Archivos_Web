@@ -1,15 +1,31 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { useActivityLogsStore } from './activityLogs';
 import { fetchApi } from '@/utils/apiDebug';
 
+const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+
 export const useDocumentsStore = defineStore('documents', () => {
-  // Estado
   const documents = ref([]);
   const currentDocument = ref(null);
   const loading = ref(false);
   const error = ref(null);
   const documentTypes = ref([]);
   const tags = ref([]);
+  const activityLogsStore = useActivityLogsStore();
+
+  // Helpers
+  const getAuthHeaders = (includeContentType = true) => {
+    const headers = {
+      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+    };
+    
+    if (includeContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    return headers;
+  };
 
   // Getters
   function getDocuments() {
@@ -36,16 +52,18 @@ export const useDocumentsStore = defineStore('documents', () => {
     return tags.value;
   }
 
-  // Acciones
-  async function fetchAllDocuments() {
+  // Actions
+  async function fetchDocuments() {
     try {
       loading.value = true;
-      const response = await fetchApi('/documents');
-      console.log(
-        'fetchAllDocuments: Respuesta de la API:', response
-      )
-      documents.value = response;
-      return response;
+      const response = await fetch(`${API_BASE_URL}/documents`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      const data = await response.json();
+      documents.value = data;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -56,11 +74,16 @@ export const useDocumentsStore = defineStore('documents', () => {
 
   async function fetchDocumentById(id) {
     try {
-      if (!id) throw new Error('Document ID is required');
       loading.value = true;
-      const response = await fetchApi(`/documents/${id}`);
-      currentDocument.value = response;
-      return response;
+      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      const data = await response.json();
+      currentDocument.value = data;
+      return data;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -69,43 +92,44 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
-  async function searchDocumentsByTitle(title) {
+  async function createDocument(documentData) {
     try {
-      if (!title) throw new Error('Search title is required');
       loading.value = true;
-      const response = await fetchApi(`/documents/search?title=${encodeURIComponent(title)}`);
-      return response;
-    } catch (err) {
-      error.value = err.message;
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  }
+      
+      // Si documentData ya es un FormData, usarlo directamente
+      const formData = documentData instanceof FormData ? documentData : new FormData();
+      
+      // Si no es FormData, crear uno nuevo (mantener compatibilidad con código existente)
+      if (!(documentData instanceof FormData)) {
+        Object.keys(documentData).forEach(key => {
+          if (key === 'file') {
+            formData.append('file', documentData.file);
+          } else if (key === 'tags' && Array.isArray(documentData.tags)) {
+            formData.append('tags', JSON.stringify(documentData.tags));
+          } else {
+            formData.append(key, documentData[key]);
+          }
+        });
+      }
 
-  async function fetchDocumentsByTag(tagName) {
-    try {
-      if (!tagName) throw new Error('Tag name is required');
-      loading.value = true;
-      const response = await fetchApi(`/documents/by-tag/${encodeURIComponent(tagName)}`);
-      return response;
-    } catch (err) {
-      error.value = err.message;
-      throw err;
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  async function createDocument(formData) {
-    try {
-      loading.value = true;
-      const response = await fetchApi('/documents', {
+      const response = await fetch(`${API_BASE_URL}/documents`, {
         method: 'POST',
-        body: formData,
-        isFormData: true
+        headers: getAuthHeaders(false),
+        body: formData
       });
-      return response;
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      const newDocument = await response.json();
+      
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'CREATE_DOCUMENT',
+        `Documento "${newDocument.title}" creado`,
+        newDocument.id
+      );
+
+      return newDocument;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -114,20 +138,42 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
-  function getDocumentDownloadUrl(id) {
-    if (!id) throw new Error('Document ID is required');
-    return `${import.meta.env.VITE_API_BASE_URL}/documents/download/${id}`;
-  }
-
-  async function updateDocument(id, document) {
+  async function updateDocument(id, documentData) {
     try {
-      if (!id) throw new Error('Document ID is required');
       loading.value = true;
-      const response = await fetchApi(`/documents/${id}`, {
-        method: 'PUT',
-        body: document
+      const formData = new FormData();
+      
+      Object.keys(documentData).forEach(key => {
+        if (key === 'file' && documentData.file) {
+          formData.append('file', documentData.file);
+        } else if (key === 'tags' && Array.isArray(documentData.tags)) {
+          // Cambio aquí: cada etiqueta se agrega como un parámetro separado
+          documentData.tags.forEach(tag => {
+            formData.append('tags', typeof tag === 'object' ? tag.name : tag);
+          });
+        } else if (documentData[key] !== undefined) {
+          formData.append(key, documentData[key]);
+        }
       });
-      return response;
+  
+      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(false),
+        body: formData
+      });
+  
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      const updatedDocument = await response.json();
+      
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'UPDATE_DOCUMENT',
+        `Documento "${updatedDocument.title}" actualizado`,
+        updatedDocument.id
+      );
+  
+      return updatedDocument;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -138,9 +184,25 @@ export const useDocumentsStore = defineStore('documents', () => {
 
   async function deleteDocument(id) {
     try {
-      if (!id) throw new Error('Document ID is required');
       loading.value = true;
-      await fetchApi(`/documents/${id}`, { method: 'DELETE' });
+      const document = await fetchDocumentById(id);
+      
+      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'DELETE_DOCUMENT',
+        `Documento "${document.title}" eliminado`,
+        id
+      );
+
+      await fetchDocuments(); // Actualizar lista
+      return true;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -149,11 +211,35 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
-  async function deleteDocumentPermanently(id) {
+  async function downloadDocument(id) {
     try {
-      if (!id) throw new Error('Document ID is required');
       loading.value = true;
-      await fetchApi(`/documents/permanent/${id}`, { method: 'DELETE' });
+      const document = await fetchDocumentById(id);
+      
+      const response = await fetch(`${API_BASE_URL}/documents/${id}/download`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'DOWNLOAD_DOCUMENT',
+        `Documento "${document.title}" descargado`,
+        id
+      );
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = document.fileName || 'documento';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      return true;
     } catch (err) {
       error.value = err.message;
       throw err;
@@ -208,15 +294,12 @@ export const useDocumentsStore = defineStore('documents', () => {
     getTags,
 
     // Actions
-    fetchAllDocuments,
+    fetchDocuments,
     fetchDocumentById,
-    searchDocumentsByTitle,
-    fetchDocumentsByTag,
     createDocument,
-    getDocumentDownloadUrl,
     updateDocument,
     deleteDocument,
-    deleteDocumentPermanently,
+    downloadDocument,
     fetchDocumentTypes,
     fetchTags
   };

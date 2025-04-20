@@ -61,7 +61,7 @@ const routes = [
       {
         path: 'activity-log',
         name: 'ActivityLog',
-        component: () => import(/* webpackChunkName: "activity" */ '@/pages/ActivityLogPlaceholder.vue'),
+        component: () => import(/* webpackChunkName: "activity" */ '@/pages/activity-logs/index.vue'),
         meta: { requiredRole: 'ADMIN' }
       },
       {
@@ -86,6 +86,16 @@ const routes = [
         path: 'documents/:id/edit',
         name: 'EditDocument',
         component: () => import(/* webpackChunkName: "documents" */ '@/pages/documents/[id]/edit.vue'),
+      },
+      {
+        path: 'activity-logs',
+        name: 'ActivityLogs',
+        component: () => import('@/pages/activity-logs/index.vue'),
+        meta: {
+          requiresAuth: true,
+          title: 'Historial de Actividades',
+          icon: 'mdi-history',
+        }
       },
     ],
   },

@@ -3,9 +3,11 @@ package com.ns.iestpffaaarchives.application.service;
 import com.ns.iestpffaaarchives.domain.entity.Document;
 import com.ns.iestpffaaarchives.domain.entity.User;
 import com.ns.iestpffaaarchives.domain.repository.DocumentRepository;
+import com.ns.iestpffaaarchives.domain.repository.DocumentVersionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ns.iestpffaaarchives.domain.entity.DocumentVersion;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,10 +17,12 @@ import java.util.Optional;
 public class DocumentService {
 
     private final DocumentRepository documentRepository;
+    private final DocumentVersionRepository documentVersionRepository;
 
     @Autowired
-    public DocumentService(DocumentRepository documentRepository) {
+    public DocumentService(DocumentRepository documentRepository, DocumentVersionRepository documentVersionRepository) {
         this.documentRepository = documentRepository;
+        this.documentVersionRepository = documentVersionRepository;
     }
 
     @Transactional(readOnly = true)
@@ -87,4 +91,9 @@ public class DocumentService {
     public void hardDeleteDocument(Long id) {
         documentRepository.deleteById(id);
     }
+
+    @Transactional
+    public DocumentVersion saveDocumentVersion(DocumentVersion version) {
+    return documentVersionRepository.save(version);
+}
 }

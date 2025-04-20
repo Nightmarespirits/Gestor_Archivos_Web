@@ -37,6 +37,8 @@
                   <v-text-field
                     v-model="formData.title"
                     label="Título del documento *"
+                    item-title="name"
+                    item-value="name"
                     variant="outlined"
                     :rules="[v => !!v || 'El título es obligatorio']"
                     required
@@ -46,11 +48,12 @@
                 <!-- Tipo de documento -->
                 <v-col cols="12" md="6">
                   <v-select
-                    v-model="formData.typeId"
-                    :items="documentTypes"
+                    v-model="formData.type"
                     item-title="name"
-                    item-value="id"
+                    item-value="name"
+                    :items="documentTypes"
                     label="Tipo de documento *"
+
                     variant="outlined"
                     :rules="[v => !!v || 'El tipo de documento es obligatorio']"
                     required
@@ -73,14 +76,14 @@
                   <v-autocomplete
                     v-model="formData.tags"
                     :items="availableTags"
-                    item-title="name"
-                    item-value="id"
                     label="Etiquetas"
                     variant="outlined"
                     chips
                     multiple
                     closable-chips
                     return-object
+                    item-title="name"
+                    item-value="id"
                   ></v-autocomplete>
                 </v-col>
                 
@@ -303,7 +306,7 @@ const documentId = computed(() => route.params.id);
 const formData = ref({
   title: '',
   description: '',
-  typeId: null,
+  type: '', // Cambiado de typeId a type
   tags: [],
   file: null
 });
@@ -313,14 +316,15 @@ onMounted(async () => {
   try {
     loading.value = true;
     
-    // Cargar el documento
-    await loadDocument();
+    // Cargar datos en paralelo para mejor rendimiento
+    const [documentData, types, tags] = await Promise.all([
+      loadDocument(),
+      documentsStore.fetchDocumentTypes(),
+      documentsStore.fetchTags()
+    ]);
     
-    // Cargar tipos de documentos
-    documentTypes.value = await documentsStore.fetchDocumentTypes();
-    
-    // Cargar etiquetas disponibles
-    availableTags.value = await documentsStore.fetchTags();
+    documentTypes.value = types;
+    availableTags.value = tags;
     
   } catch (error) {
     showError('Error al cargar los datos iniciales: ' + error.message);
@@ -333,9 +337,9 @@ onMounted(async () => {
 watch(document, (newDocument) => {
   if (newDocument) {
     formData.value = {
-      title: newDocument.title || '',
+      title: newDocument.title || 'no encontrado',
       description: newDocument.description || '',
-      typeId: newDocument.type ? newDocument.type.id : null,
+      type: newDocument.documentType || null, // Cambiado para usar el nombre del tipo
       tags: newDocument.tags || [],
       file: null
     };
@@ -352,6 +356,28 @@ async function loadDocument() {
   }
 }
 
+async function validateFormData() {
+  if (!formData.value.type) {
+    throw new Error('El tipo de documento es obligatorio');
+  }
+  
+  // Validar el tamaño del archivo si se proporciona uno nuevo
+  if (formData.value.file) {
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    if (formData.value.file.size > maxSize) {
+      throw new Error('El archivo excede el tamaño máximo permitido de 20MB');
+    }
+  }
+  
+  // Validar que el tipo de documento exista
+  const validType = documentTypes.value.find(t => t.name === formData.value.type);
+  if (!validType) {
+    throw new Error('El tipo de documento seleccionado no es válido');
+  }
+  
+  return true;
+}
+
 async function submitForm() {
   if (!form.value) return;
   
@@ -365,44 +391,42 @@ async function submitForm() {
   try {
     saving.value = true;
     
-    // Si hay un nuevo archivo, usar FormData
+    // Validar datos del formulario
+    await validateFormData();
+    
+    // Crear FormData para enviar el archivo y los datos
+    const formDataToSend = new FormData();
+    
+    // Siempre enviar los datos básicos
+    formDataToSend.append('title', formData.value.title);
+    formDataToSend.append('description', formData.value.description || '');
+    formDataToSend.append('type', formData.value.type);
+    
+    // Si hay un nuevo archivo, agregarlo
     if (formData.value.file) {
-      const formDataToSend = new FormData();
       formDataToSend.append('file', formData.value.file);
-      formDataToSend.append('title', formData.value.title);
-      formDataToSend.append('description', formData.value.description || '');
-      formDataToSend.append('typeId', formData.value.typeId);
-      
-      // Agregar etiquetas si existen
-      if (formData.value.tags && formData.value.tags.length > 0) {
-        formData.value.tags.forEach((tag, index) => {
-          formDataToSend.append(`tags[${index}].id`, tag.id);
-          formDataToSend.append(`tags[${index}].name`, tag.name);
-        });
-      }
-      
-      await documentsStore.updateDocument(documentId.value, formDataToSend);
-    } else {
-      // Si no hay nuevo archivo, enviar JSON
-      const updateData = {
-        title: formData.value.title,
-        description: formData.value.description || '',
-        typeId: formData.value.typeId,
-        tags: formData.value.tags || []
-      };
-      
-      await documentsStore.updateDocument(documentId.value, updateData);
     }
+    
+    // Agregar etiquetas si existen
+    if (formData.value.tags && formData.value.tags.length > 0) {
+      formData.value.tags.forEach(tag => {
+        formDataToSend.append('tags', tag.name);
+      });
+    }
+    
+    // Actualizar el documento
+    await documentsStore.updateDocument(documentId.value, formDataToSend);
     
     showSuccess('Documento actualizado correctamente.');
     
     // Recargar el documento para mostrar los cambios
     await loadDocument();
     
-    // Redirigir a la página de detalles después de un breve retraso
-    setTimeout(() => {
-      router.push(`/documents/${documentId.value}`);
-    }, 1500);
+    // Redirigir a la página de detalles
+    router.push({ 
+      name: 'DocumentDetail',
+      params: { id: documentId.value }
+    });
     
   } catch (error) {
     showError('Error al actualizar el documento: ' + error.message);
@@ -416,7 +440,7 @@ function resetForm() {
     formData.value = {
       title: document.value.title || '',
       description: document.value.description || '',
-      typeId: document.value.type ? document.value.type.id : null,
+      type: document.value.type ? document.value.type.name : null,
       tags: document.value.tags || [],
       file: null
     };

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
+import { useActivityLogsStore } from './activityLogs';
 
 // Define la URL base de la API
 const API_BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -9,6 +10,7 @@ export const useUsersStore = defineStore('users', () => {
   const roles = ref([]);
   const loading = ref(false);
   const error = ref(null);
+  const activityLogsStore = useActivityLogsStore();
 
   // Obtener token de autenticación del localStorage
   const getAuthToken = () => {
@@ -116,6 +118,13 @@ export const useUsersStore = defineStore('users', () => {
       }
 
       const newUser = await response.json();
+      
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'CREATE_USER',
+        `Usuario "${newUser.username}" creado`
+      );
+
       await fetchUsers(); // Refrescar la lista de usuarios
       return newUser;
     } catch (err) {
@@ -247,6 +256,12 @@ export const useUsersStore = defineStore('users', () => {
         }
       }
       
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'UPDATE_USER',
+        `Usuario "${updatedUser.username}" actualizado`
+      );
+
       // Refrescar la lista de usuarios
       try {
         await fetchUsers();
@@ -271,6 +286,7 @@ export const useUsersStore = defineStore('users', () => {
     error.value = null;
     
     try {
+      const user = await fetchUserById(userId);
       const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -279,6 +295,12 @@ export const useUsersStore = defineStore('users', () => {
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
+
+      // Registrar la actividad
+      await activityLogsStore.createActivityLog(
+        'DELETE_USER',
+        `Usuario "${user.username}" eliminado`
+      );
 
       await fetchUsers(); // Refrescar la lista de usuarios
       return true;

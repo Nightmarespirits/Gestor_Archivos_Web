@@ -25,13 +25,14 @@ const getAuthHeaders = (isFormData = false) => {
 };
 
 export const fetchApi = async (endpoint, options = {}) => {
-  const { method = 'GET', body, isFormData = false } = options;
+  const { method = 'GET', body, isFormData} = options;
 
   try {
     const url = `${API_BASE_URL}${endpoint}`;
 
-    console.log(API_BASE_URL)
-    console.log(`Realizando petición ${method} a:`, url);
+    console.log('URL de la petición:', url);
+    console.log('Método:', method);
+    console.log('Datos enviados:', isFormData ? 'FormData Object' : body);
 
     const headers = getAuthHeaders(isFormData);
     const config = {
@@ -44,26 +45,42 @@ export const fetchApi = async (endpoint, options = {}) => {
       config.body = isFormData ? body : JSON.stringify(body);
     }
 
-    console.log('Configuración de la petición:', {
+    console.log('Configuración completa:', {
+      url,
       method,
       headers,
       bodyType: body ? (isFormData ? 'FormData' : 'JSON') : 'none'
     });
 
     const response = await fetch(url, config);
-    console.log(`Respuesta recibida (${response.status}):`, response.statusText);
+    
+    // Log detallado de la respuesta
+    console.log('Respuesta del servidor:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers.entries())
+    });
 
-    // Si la respuesta no es exitosa, manejar el error
+    // Si la respuesta no es exitosa, intentar obtener el mensaje de error detallado
     if (!response.ok) {
-      let errorMessage = `Error ${response.status}: ${response.statusText}`;
       const contentType = response.headers.get('content-type');
+      let errorMessage = `Error ${response.status}: ${response.statusText}`;
 
       if (contentType && contentType.includes('application/json')) {
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('Error detallado del servidor:', errorData);
         } catch (e) {
           console.error('Error al parsear respuesta JSON de error:', e);
+        }
+      } else {
+        try {
+          const textError = await response.text();
+          errorMessage = textError || errorMessage;
+          console.error('Error en texto plano del servidor:', textError);
+        } catch (e) {
+          console.error('Error al leer respuesta de texto:', e);
         }
       }
 
@@ -75,17 +92,27 @@ export const fetchApi = async (endpoint, options = {}) => {
       return null;
     }
 
-    // Para respuestas exitosas con contenido, intentar parsear como JSON
-    try {
-      const data = await response.json();
-      console.log('Datos recibidos:', data);
-      return data;
-    } catch (e) {
-      console.warn('La respuesta no contiene JSON válido:', e);
-      return null;
+    // Para respuestas exitosas con contenido
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      try {
+        const data = await response.json();
+        console.log('Datos recibidos:', data);
+        return data;
+      } catch (e) {
+        console.error('Error al parsear respuesta JSON:', e);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+    } else {
+      const textResponse = await response.text();
+      console.log('Respuesta en texto plano:', textResponse);
+      return textResponse;
     }
   } catch (error) {
-    console.error('Error en fetchApi:', error);
+    console.error('Error en fetchApi:', {
+      message: error.message,
+      stack: error.stack
+    });
     throw error;
   }
 };

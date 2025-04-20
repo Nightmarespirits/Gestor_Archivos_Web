@@ -5,6 +5,7 @@ import com.ns.iestpffaaarchives.application.service.UserService;
 import com.ns.iestpffaaarchives.application.service.TagService;
 import com.ns.iestpffaaarchives.application.service.DocumentTypeService;
 import com.ns.iestpffaaarchives.domain.entity.Document;
+import com.ns.iestpffaaarchives.domain.entity.DocumentVersion;
 import com.ns.iestpffaaarchives.domain.entity.User;
 import com.ns.iestpffaaarchives.domain.entity.Tag;
 import com.ns.iestpffaaarchives.domain.entity.DocumentType;
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -33,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/api/documents")
@@ -58,8 +61,15 @@ public class DocumentController {
 
     @GetMapping
     public ResponseEntity<List<DocumentDTO>> getAllDocuments() {
-        List<Document> documents = documentService.getAllDocuments();
-        return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
+        try {
+            List<Document> documents = documentService.getAllDocuments();
+            if (documents.isEmpty()) {
+                return ResponseEntity.noContent().build();
+            }
+            return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     @GetMapping("/{id}")
@@ -102,16 +112,26 @@ public class DocumentController {
             @RequestParam("type") String type,
             @RequestParam(value = "tags", required = false) List<String> tagNames) {
         
-        Optional<User> authorOptional = userService.getUserById(authorId);
-        
-        if (authorOptional.isEmpty()) {
-            return ResponseEntity.badRequest().body("El autor especificado no existe");
+        // Validar archivo
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("El archivo está vacío");
         }
         
-        // Buscar el DocumentType por nombre
+        // Validar título
+        if (title == null || title.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("El título es obligatorio");
+        }
+        
+        // Validar autor
+        Optional<User> authorOptional = userService.getUserById(authorId);
+        if (authorOptional.isEmpty()) {
+            return ResponseEntity.badRequest().body("El autor especificado no existe (ID: " + authorId + ")");
+        }
+        
+        // Validar tipo de documento
         Optional<DocumentType> documentType = documentTypeService.findByName(type);
         if (documentType.isEmpty()) {
-            return ResponseEntity.badRequest().body("El tipo de documento especificado no existe");
+            return ResponseEntity.badRequest().body("El tipo de documento especificado no existe (Tipo: " + type + ")");
         }
         
         try {
@@ -151,7 +171,7 @@ public class DocumentController {
             Document document = new Document();
             document.setTitle(title);
             document.setDescription(description);
-            document.setFilePath(uniqueFilename);
+            document.setFilePath(uniqueFilename);  // Solo guardamos el nombre del archivo
             document.setFormat(file.getContentType());
             document.setAuthor(authorOptional.get());
             document.setType(documentType.get());
@@ -160,8 +180,22 @@ public class DocumentController {
             Document savedDocument = documentService.createDocument(document);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(DocumentMapper.toDTO(savedDocument));
+            
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el archivo: " + e.getMessage());
+            // Eliminar el archivo si se subió pero hubo un error al crear el documento
+            try {
+                Path filePath = Paths.get(uploadDir).resolve(UUID.randomUUID().toString() + 
+                    file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".")));
+                Files.deleteIfExists(filePath);
+            } catch (IOException deleteError) {
+                // Log error de limpieza
+                deleteError.printStackTrace();
+            }
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al procesar el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error inesperado al crear el documento: " + e.getMessage());
         }
     }
 
@@ -192,25 +226,40 @@ public class DocumentController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<DocumentDTO> updateDocument(@PathVariable Long id, @RequestBody DocumentDTO documentDetails) {
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentDTO> updateDocument(
+            @PathVariable Long id,
+            @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestParam(value = "documentTypeId", required = false) Long documentTypeId,
+            @RequestParam(value = "tags", required = false) List<String> tagNames,
+            @RequestParam(value = "file", required = false) MultipartFile file) {
+        
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         
         if (documentOptional.isPresent()) {
             Document document = documentOptional.get();
+            String oldFilePath = document.getFilePath();
             
-            if (documentDetails.getTitle() != null) {
-                document.setTitle(documentDetails.getTitle());
+            // Update metadata fields
+            if (title != null) {
+                document.setTitle(title);
             }
-            if (documentDetails.getDescription() != null) {
-                document.setDescription(documentDetails.getDescription());
+            if (description != null) {
+                document.setDescription(description);
             }
             
-            // Convertir nombres de etiquetas a entidades Tag
-            if (documentDetails.getTags() != null) {
-                Set<Tag> tags = documentDetails.getTags().stream()
+            // Update document type if provided
+            if (documentTypeId != null) {
+                DocumentType documentType = documentTypeService.getDocumentTypeById(documentTypeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Tipo de documento no encontrado"));
+                document.setType(documentType);
+            }
+            
+            // Update tags if provided
+            if (tagNames != null && !tagNames.isEmpty()) {
+                Set<Tag> tags = tagNames.stream()
                     .map(tagName -> {
-                        // Buscar la etiqueta por nombre o crear una nueva
                         List<Tag> existingTags = tagService.searchTagsByName(tagName);
                         if (!existingTags.isEmpty()) {
                             return existingTags.get(0);
@@ -222,6 +271,41 @@ public class DocumentController {
                     })
                     .collect(Collectors.toSet());
                 document.setTags(tags);
+            }
+            
+            // Handle file upload if provided
+            if (file != null && !file.isEmpty()) {
+                try {
+                    // Save the file
+                    Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+                    Files.createDirectories(uploadPath);
+                    
+                    String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
+                    String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                    String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+                    
+                    Path filePath = uploadPath.resolve(uniqueFilename);
+                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+                    
+                    // Create document version for the old file
+                    DocumentVersion version = new DocumentVersion();
+                    version.setDocument(document);
+                    version.setVersionNumber(document.getVersionNumber()); // Store current version
+                    version.setChanges("Actualización de archivo");
+                    version.setAuthor(document.getAuthor()); // Or current user if available
+                    version.setFilePath(oldFilePath);
+                    
+                    // Save the version
+                    documentService.saveDocumentVersion(version);
+                    
+                    // Update document with new file info
+                    document.setFilePath(uniqueFilename);
+                    document.setFormat(file.getContentType());
+                    document.setVersionNumber(document.getVersionNumber() + 1);
+                } catch (IOException e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(null);
+                }
             }
             
             Document updatedDocument = documentService.updateDocument(document);
