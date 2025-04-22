@@ -306,7 +306,7 @@ const documentId = computed(() => route.params.id);
 const formData = ref({
   title: '',
   description: '',
-  type: '', // Cambiado de typeId a type
+  type: '', 
   tags: [],
   file: null
 });
@@ -339,7 +339,7 @@ watch(document, (newDocument) => {
     formData.value = {
       title: newDocument.title || 'no encontrado',
       description: newDocument.description || '',
-      type: newDocument.documentType || null, // Cambiado para usar el nombre del tipo
+      type: newDocument.documentType || null, 
       tags: newDocument.tags || [],
       file: null
     };
@@ -379,59 +379,33 @@ async function validateFormData() {
 }
 
 async function submitForm() {
-  if (!form.value) return;
-  
-  const { valid } = await form.value.validate();
-  
-  if (!valid) {
-    showError('Por favor, complete todos los campos obligatorios.');
+  // Validar antes de enviar
+  if (!validateFormData()) {
+    showError('Por favor, completa los campos obligatorios.');
     return;
   }
-  
+  const documentId = route.params.id;
+  // Crear objeto plano para enviar al store
+  const plainData = {
+    title: formData.value.title,
+    description: formData.value.description || '',
+    // Mapear correctamente el documentTypeId
+    documentTypeId: (formData.value.type && typeof formData.value.type === 'object' && formData.value.type.id)
+      ? formData.value.type.id
+      : formData.value.type,
+    tags: formData.value.tags ? formData.value.tags.map(tag => tag.name || tag) : [],
+    file: formData.value.file || null
+  };
+  // Log de los datos enviados
+  console.log('Datos enviados al store (plainData):', plainData);
   try {
-    saving.value = true;
-    
-    // Validar datos del formulario
-    await validateFormData();
-    
-    // Crear FormData para enviar el archivo y los datos
-    const formDataToSend = new FormData();
-    
-    // Siempre enviar los datos básicos
-    formDataToSend.append('title', formData.value.title);
-    formDataToSend.append('description', formData.value.description || '');
-    formDataToSend.append('type', formData.value.type);
-    
-    // Si hay un nuevo archivo, agregarlo
-    if (formData.value.file) {
-      formDataToSend.append('file', formData.value.file);
-    }
-    
-    // Agregar etiquetas si existen
-    if (formData.value.tags && formData.value.tags.length > 0) {
-      formData.value.tags.forEach(tag => {
-        formDataToSend.append('tags', tag.name);
-      });
-    }
-    
-    // Actualizar el documento
-    await documentsStore.updateDocument(documentId.value, formDataToSend);
-    
+    const updated = await documentsStore.updateDocument(documentId, plainData);
+    console.log('[submitForm] Documento actualizado:', updated);
     showSuccess('Documento actualizado correctamente.');
-    
-    // Recargar el documento para mostrar los cambios
-    await loadDocument();
-    
-    // Redirigir a la página de detalles
-    router.push({ 
-      name: 'DocumentDetail',
-      params: { id: documentId.value }
-    });
-    
+    router.push({ name: 'DocumentDetail', params: { id: documentId } });
   } catch (error) {
-    showError('Error al actualizar el documento: ' + error.message);
-  } finally {
-    saving.value = false;
+    showError('Error al actualizar el documento. Revisa la consola para más detalles.');
+    console.error('[submitForm] Error:', error);
   }
 }
 

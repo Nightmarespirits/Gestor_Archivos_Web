@@ -20,6 +20,7 @@
                   density="comfortable"
                   hide-details
                   @keyup.enter="searchDocuments"
+                  clearable
                 ></v-text-field>
               </v-col>
               
@@ -58,61 +59,48 @@
               </v-col>
             </v-row>
 
-            <v-row class="mt-4">
+            <v-row>
+              <!-- Búsqueda por autor -->
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="searchAuthor"
+                  label="Buscar por autor (nombre o apellidos)"
+                  prepend-inner-icon="mdi-account"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                ></v-text-field>
+              </v-col>
+              
               <!-- Filtro por fecha desde -->
               <v-col cols="12" md="4">
-                <v-menu
-                  v-model="dateFromMenu"
-                  :close-on-content-click="false"
-                  location="bottom"
-                >
-                  <template v-slot:activator="{ props }">
-                    <v-text-field
-                      v-model="dateFrom"
-                      label="Fecha desde"
-                      prepend-inner-icon="mdi-calendar"
-                      readonly
-                      v-bind="props"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      clearable
-                    ></v-text-field>
-                  </template>
-                  <v-date-picker
-                    v-model="dateFrom"
-                    @update:model-value="dateFromMenu = false"
-                  ></v-date-picker>
-                </v-menu>
+                <v-text-field
+                  v-model="dateFrom"
+                  label="Desde fecha"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                ></v-text-field>
               </v-col>
               
               <!-- Filtro por fecha hasta -->
               <v-col cols="12" md="4">
-                <v-menu
-                  v-model="dateToMenu"
-                  :close-on-content-click="false"
-                  location="bottom"
-                >
-                  <template v-slot:activator="{ props }">
-                    <v-text-field
-                      v-model="dateTo"
-                      label="Fecha hasta"
-                      prepend-inner-icon="mdi-calendar"
-                      readonly
-                      v-bind="props"
-                      variant="outlined"
-                      density="comfortable"
-                      hide-details
-                      clearable
-                    ></v-text-field>
-                  </template>
-                  <v-date-picker
-                    v-model="dateTo"
-                    @update:model-value="dateToMenu = false"
-                  ></v-date-picker>
-                </v-menu>
+                <v-text-field
+                  v-model="dateTo"
+                  label="Hasta fecha"
+                  type="date"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  clearable
+                ></v-text-field>
               </v-col>
-              
+            </v-row>
+
+            <v-row class="mt-4">
               <!-- Botones de acción -->
               <v-col cols="12" md="4" class="d-flex align-center">
                 <v-btn 
@@ -275,10 +263,9 @@ const router = useRouter();
 const searchTitle = ref('');
 const selectedDocumentType = ref(null);
 const selectedTag = ref(null);
-const dateFrom = ref(null);
-const dateTo = ref(null);
-const dateFromMenu = ref(false);
-const dateToMenu = ref(false);
+const searchAuthor = ref('');
+const dateFrom = ref('');
+const dateTo = ref('');
 const documents = ref([]);
 const documentTypes = ref([]);
 const tags = ref([]);
@@ -302,8 +289,8 @@ const headers = [
 
 // Computed
 const filteredDocuments = computed(() => {
+  console.log("Cargando documentos...");
   let result = [...documents.value];
-  
   // Filtrar por título
   if (searchTitle.value.trim()) {
     const searchLower = searchTitle.value.toLowerCase().trim();
@@ -324,6 +311,16 @@ const filteredDocuments = computed(() => {
   if (selectedTag.value) {
     result = result.filter(doc => 
       doc.tags && doc.tags.some(tag => tag.id === selectedTag.value.id)
+    );
+  }
+  
+  // Filtrar por autor
+  if (searchAuthor.value.trim()) {
+    const searchLower = searchAuthor.value.toLowerCase().trim();
+    result = result.filter(doc => 
+      doc.author.username.toLowerCase().includes(searchLower) ||
+      (doc.author.name && doc.author.name.toLowerCase().includes(searchLower)) ||
+      (doc.author.surname && doc.author.surname.toLowerCase().includes(searchLower))
     );
   }
   
@@ -370,7 +367,7 @@ onMounted(async () => {
 });
 
 // Observar cambios en los filtros para actualizar la búsqueda
-watch([selectedDocumentType, selectedTag, dateFrom, dateTo], () => {
+watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor], () => {
   searchDocuments();
 });
 
@@ -378,7 +375,7 @@ watch([selectedDocumentType, selectedTag, dateFrom, dateTo], () => {
 async function fetchDocuments() {
   try {
     loading.value = true;
-    documents.value = await documentsStore.fetchAllDocuments();
+    documents.value = await documentsStore.getDocuments();
   } catch (error) {
     showError('Error al cargar documentos: ' + error.message);
   } finally {
@@ -416,7 +413,7 @@ async function searchDocuments() {
     }
     // De lo contrario, cargar todos los documentos
     else {
-      documents.value = await documentsStore.fetchAllDocuments();
+      documents.value = await documentsStore.getDocuments();
     }
     
   } catch (error) {
@@ -430,8 +427,9 @@ function resetFilters() {
   searchTitle.value = '';
   selectedDocumentType.value = null;
   selectedTag.value = null;
-  dateFrom.value = null;
-  dateTo.value = null;
+  searchAuthor.value = '';
+  dateFrom.value = '';
+  dateTo.value = '';
   fetchDocuments();
 }
 

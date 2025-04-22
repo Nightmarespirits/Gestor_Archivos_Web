@@ -22,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.nio.file.Files;
@@ -36,11 +35,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/documents")
 // Eliminado @CrossOrigin(origins = "*") para usar la configuración global
 public class DocumentController {
+
+    private static final Logger logger = LoggerFactory.getLogger(DocumentController.class);
 
     private final DocumentService documentService;
     private final UserService userService;
@@ -79,12 +82,6 @@ public class DocumentController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<List<DocumentDTO>> searchDocumentsByTitle(@RequestParam String title) {
-        List<Document> documents = documentService.searchDocumentsByTitle(title);
-        return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
-    }
-
     @GetMapping("/tag/{tagName}")
     public ResponseEntity<List<DocumentDTO>> getDocumentsByTag(@PathVariable String tagName) {
         List<Document> documents = documentService.getDocumentsByTag(tagName);
@@ -101,6 +98,22 @@ public class DocumentController {
         } else {
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<DocumentDTO>> searchDocuments(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) Long documentTypeId,
+            @RequestParam(required = false) List<String> tags
+    ) {
+        List<Document> results = documentService.advancedSearch(title, author, fromDate, toDate, documentTypeId, tags);
+        List<DocumentDTO> dtos = results.stream()
+                .map(DocumentMapper::toDTO)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -234,84 +247,43 @@ public class DocumentController {
             @RequestParam(value = "documentTypeId", required = false) Long documentTypeId,
             @RequestParam(value = "tags", required = false) List<String> tagNames,
             @RequestParam(value = "file", required = false) MultipartFile file) {
-        
+        logger.info("[updateDocument] Solicitud de actualización para documento id={}", id);
         Optional<Document> documentOptional = documentService.getDocumentById(id);
-        
-        if (documentOptional.isPresent()) {
-            Document document = documentOptional.get();
-            String oldFilePath = document.getFilePath();
-            
-            // Update metadata fields
-            if (title != null) {
-                document.setTitle(title);
-            }
-            if (description != null) {
-                document.setDescription(description);
-            }
-            
-            // Update document type if provided
-            if (documentTypeId != null) {
-                DocumentType documentType = documentTypeService.getDocumentTypeById(documentTypeId)
-                    .orElseThrow(() -> new IllegalArgumentException("Tipo de documento no encontrado"));
-                document.setType(documentType);
-            }
-            
-            // Update tags if provided
-            if (tagNames != null && !tagNames.isEmpty()) {
-                Set<Tag> tags = tagNames.stream()
-                    .map(tagName -> {
-                        List<Tag> existingTags = tagService.searchTagsByName(tagName);
-                        if (!existingTags.isEmpty()) {
-                            return existingTags.get(0);
-                        } else {
-                            Tag newTag = new Tag();
-                            newTag.setName(tagName);
-                            return tagService.createTag(newTag);
-                        }
-                    })
-                    .collect(Collectors.toSet());
-                document.setTags(tags);
-            }
-            
-            // Handle file upload if provided
-            if (file != null && !file.isEmpty()) {
-                try {
-                    // Save the file
-                    Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
-                    Files.createDirectories(uploadPath);
-                    
-                    String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-                    String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-                    String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
-                    
-                    Path filePath = uploadPath.resolve(uniqueFilename);
-                    Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                    
-                    // Create document version for the old file
-                    DocumentVersion version = new DocumentVersion();
-                    version.setDocument(document);
-                    version.setVersionNumber(document.getVersionNumber()); // Store current version
-                    version.setChanges("Actualización de archivo");
-                    version.setAuthor(document.getAuthor()); // Or current user if available
-                    version.setFilePath(oldFilePath);
-                    
-                    // Save the version
-                    documentService.saveDocumentVersion(version);
-                    
-                    // Update document with new file info
-                    document.setFilePath(uniqueFilename);
-                    document.setFormat(file.getContentType());
-                    document.setVersionNumber(document.getVersionNumber() + 1);
-                } catch (IOException e) {
-                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body(null);
-                }
-            }
-            
-            Document updatedDocument = documentService.updateDocument(document);
-            return ResponseEntity.ok(DocumentMapper.toDTO(updatedDocument));
-        } else {
+        if (documentOptional.isEmpty()) {
+            logger.warn("[updateDocument] Documento no encontrado id={}", id);
             return ResponseEntity.notFound().build();
+        }
+        Document document = documentOptional.get();
+        // Actualizar campos recibidos
+        if (title != null) document.setTitle(title);
+        if (description != null) document.setDescription(description);
+        if (documentTypeId != null) {
+            DocumentType documentType = documentTypeService.getDocumentTypeById(documentTypeId)
+                .orElseThrow(() -> new IllegalArgumentException("Tipo de documento no encontrado"));
+            document.setType(documentType);
+        }
+        if (tagNames != null && !tagNames.isEmpty()) {
+            Set<Tag> tags = tagNames.stream()
+                .map(tagName -> {
+                    List<Tag> existingTags = tagService.searchTagsByName(tagName);
+                    if (!existingTags.isEmpty()) {
+                        return existingTags.get(0);
+                    } else {
+                        Tag newTag = new Tag();
+                        newTag.setName(tagName);
+                        return tagService.createTag(newTag);
+                    }
+                })
+                .collect(Collectors.toSet());
+            document.setTags(tags);
+        }
+        try {
+            Document updatedDocument = documentService.updateDocumentWithVersioning(document, file, uploadDir);
+            logger.info("[updateDocument] Documento actualizado correctamente id={}", updatedDocument.getId());
+            return ResponseEntity.ok(DocumentMapper.toDTO(updatedDocument));
+        } catch (Exception e) {
+            logger.error("[updateDocument] Error al actualizar documento id={}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 

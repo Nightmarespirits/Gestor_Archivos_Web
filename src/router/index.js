@@ -67,7 +67,7 @@ const routes = [
       {
         path: 'access-control',
         name: 'AccessControl',
-        component: () => import(/* webpackChunkName: "access" */ '@/pages/AccessControlPlaceholder.vue'),
+        component: () => import(/* webpackChunkName: "access" */ '@/pages/access-control/index.vue'),
         meta: { requiredRole: 'ADMIN' }
       },
       {
@@ -123,9 +123,9 @@ const routes = [
         name: 'Unauthorized',
         component: () => import(/* webpackChunkName: "unauthorized" */ '@/pages/UnauthorizedPlaceholder.vue'),
       },
-      {
+  {
         path: ':catchAll(.*)',
-        name: 'NotFound',
+    name: 'NotFound',
         component: () => import(/* webpackChunkName: "notfound" */ '@/pages/NotFoundPlaceholder.vue'),
       }
     ]

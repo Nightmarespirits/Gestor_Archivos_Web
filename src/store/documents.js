@@ -142,40 +142,52 @@ export const useDocumentsStore = defineStore('documents', () => {
     try {
       loading.value = true;
       const formData = new FormData();
-      
+      // Log de los datos originales
+      console.log('[updateDocument] Datos originales:', documentData);
       Object.keys(documentData).forEach(key => {
         if (key === 'file' && documentData.file) {
           formData.append('file', documentData.file);
         } else if (key === 'tags' && Array.isArray(documentData.tags)) {
-          // Cambio aquí: cada etiqueta se agrega como un parámetro separado
           documentData.tags.forEach(tag => {
             formData.append('tags', typeof tag === 'object' ? tag.name : tag);
           });
+        } else if ((key === 'type' || key === 'documentTypeId') && documentData[key]) {
+          // Mapear correctamente el ID de tipo de documento
+          let docTypeId = documentData[key];
+          if (typeof docTypeId === 'object' && docTypeId.id) {
+            docTypeId = docTypeId.id;
+          } else if (typeof docTypeId === 'string') {
+            const docType = documentTypes.value.find(dt => dt.name === docTypeId || dt.id == docTypeId);
+            if (docType) docTypeId = docType.id;
+          }
+          formData.append('documentTypeId', docTypeId);
         } else if (documentData[key] !== undefined) {
           formData.append(key, documentData[key]);
         }
       });
-  
+      // Log de los datos enviados
+      for (let [k, v] of formData.entries()) {
+        console.log(`[updateDocument] FormData: ${k} =`, v);
+      }
       const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
         method: 'PUT',
         headers: getAuthHeaders(false),
         body: formData
       });
-  
+      console.log('[updateDocument] Respuesta HTTP:', response);
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
       const updatedDocument = await response.json();
-      
+      console.log('[updateDocument] Documento actualizado recibido:', updatedDocument);
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
         'UPDATE_DOCUMENT',
         `Documento "${updatedDocument.title}" actualizado`,
         updatedDocument.id
       );
-  
       return updatedDocument;
     } catch (err) {
       error.value = err.message;
+      console.error('[updateDocument] Error:', err);
       throw err;
     } finally {
       loading.value = false;
