@@ -10,6 +10,7 @@ import com.ns.iestpffaaarchives.domain.repository.PermissionRepository;
 import com.ns.iestpffaaarchives.domain.repository.RoleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,6 +39,15 @@ public class DataInitializationConfig {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Value("${superuser.username}")
+    private String superUsername;
+
+    @Value("${superuser.password}")
+    private String superPassword;
+
+    @Value("${superuser.email}")
+    private String superEmail;
+
     /**
      * Initialize database with basic roles and permissions.
      */
@@ -54,6 +64,9 @@ public class DataInitializationConfig {
             
             // Create admin user if it doesn't exist
             createAdminUser();
+            
+            // Create superadmin user if it doesn't exist
+            createSuperadminUser();
             
             log.info("Database initialization completed.");
         };
@@ -105,16 +118,11 @@ public class DataInitializationConfig {
     }
 
     private void createAdminUser() {
-        log.info("Checking for admin user...");
         
         if (!userService.existsByUsername("admin")) {
-            log.info("Creating admin user...");
-            
-            // Codificar la contraseña y mostrarla en los logs
-            String rawPassword = "admin";
+
+            String rawPassword = "92jd$s?P*";
             String encodedPassword = passwordEncoder.encode(rawPassword);
-            log.info("Admin password (raw): {}", rawPassword);
-            log.info("Admin password (encoded): {}", encodedPassword);
             
             User adminUser = new User();
             adminUser.setUsername("admin");
@@ -124,20 +132,49 @@ public class DataInitializationConfig {
             adminUser.setStatus(true);
             
             // Set admin role
-            roleRepository.findByName(RoleEnum.ADMIN.getName())
+            roleRepository.findByName(RoleEnum.SUPERADMIN.name())
                 .ifPresent(adminUser::setRole);
             
             User savedUser = userService.createUser(adminUser);
             log.info("Admin user created successfully with ID: {}", savedUser.getId());
         } else {
-            log.info("Admin user already exists.");
-            
-            // Opcional: Actualizar la contraseña del usuario admin existente
             userService.getUserByUsername("admin").ifPresent(adminUser -> {
-                String newEncodedPassword = passwordEncoder.encode("admin");
+                String newEncodedPassword = passwordEncoder.encode("92jd$s?P*");
                 adminUser.setPassword(newEncodedPassword);
                 userService.updateUser(adminUser);
-                log.info("Admin password has been reset.");
+            });
+        }
+    }
+
+    private void createSuperadminUser() {
+        log.info("Checking for superadmin user...");
+        if (!userService.existsByUsername(superUsername)) {
+            log.info("Creating superadmin user...");
+            String encodedPassword = passwordEncoder.encode(superPassword);
+            log.info("Superadmin password (raw): {}", superPassword);
+            log.info("Superadmin password (encoded): {}", encodedPassword);
+
+            User superUser = new User();
+            superUser.setUsername(superUsername);
+            superUser.setPassword(encodedPassword);
+            superUser.setEmail(superEmail);
+            superUser.setFullName("Superadministrador");
+            superUser.setStatus(true);
+
+            // Set SUPERADMIN role
+            roleRepository.findByName(RoleEnum.SUPERADMIN.name())
+                .ifPresent(superUser::setRole);
+
+            User savedSuperUser = userService.createUser(superUser);
+            log.info("Superadmin user created successfully with ID: {}", savedSuperUser.getId());
+        } else {
+            log.info("Superadmin user already exists.");
+            userService.getUserByUsername(superUsername).ifPresent(superUser -> {
+                String newEncodedPassword = passwordEncoder.encode(superPassword);
+                superUser.setPassword(newEncodedPassword);
+                superUser.setEmail(superEmail);
+                userService.updateUser(superUser);
+                log.info("Superadmin password and email have been reset.");
             });
         }
     }

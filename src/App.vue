@@ -13,8 +13,10 @@
 import { onBeforeMount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
+import { useUserPermissionsStore } from '@/store/userPermissions';
 
 const authStore = useAuthStore();
+const permissionStore = useUserPermissionsStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -23,6 +25,11 @@ onBeforeMount(async () => {
   try {
     // Verificar token en localStorage
     await authStore.checkAuth();
+    
+    // Si el usuario está autenticado, cargar sus permisos
+    if (authStore.isAuthenticated) {
+      await permissionStore.loadUserPermissions();
+    }
     
     // Si el usuario está autenticado y la ruta actual es login, 
     // redirigir a la página principal

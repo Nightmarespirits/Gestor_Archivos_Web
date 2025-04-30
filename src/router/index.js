@@ -1,10 +1,3 @@
-/**
- * router/index.ts
- *
- * Automatic routes for `./src/pages/*.vue`
- */
-
-// Composables
 import { createRouter, createWebHistory } from 'vue-router';
 import DefaultLayout from '@/layouts/default.vue';
 import BlankLayout from '@/layouts/blank.vue';
@@ -27,31 +20,27 @@ const routes = [
         path: 'documents',
         name: 'Documents',
         component: () => import(/* webpackChunkName: "documents" */ '@/pages/documents/index.vue'),
-        meta: { requiredRole: 'ADMIN' },
+        meta: { requiredRoles: ['SUPERADMIN', 'ADMIN', 'MANAGER', 'ARCHIVIST'] } //
       },
       {
         path: 'documents/create',
         name: 'CreateDocument',
         component: () => import(/* webpackChunkName: "documents" */ '@/pages/documents/create.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'users',
         name: 'Users',
         component: () => import(/* webpackChunkName: "users" */ '@/pages/users/index.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'users/create',
         name: 'CreateUser',
         component: () => import(/* webpackChunkName: "users" */ '@/pages/users/create.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'users/:id/edit',
         name: 'EditUser',
         component: () => import(/* webpackChunkName: "users" */ '@/pages/users/[id]/edit.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'search-documents',
@@ -62,19 +51,16 @@ const routes = [
         path: 'activity-log',
         name: 'ActivityLog',
         component: () => import(/* webpackChunkName: "activity" */ '@/pages/activity-logs/index.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'access-control',
         name: 'AccessControl',
         component: () => import(/* webpackChunkName: "access" */ '@/pages/access-control/index.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       {
         path: 'tags-types',
         name: 'TagsAndTypes',
         component: () => import(/* webpackChunkName: "tags-types" */ '@/pages/tags-types/index.vue'),
-        meta: { requiredRole: 'ADMIN' }
       },
       // Rutas para documentos individuales
       {
@@ -91,11 +77,11 @@ const routes = [
         path: 'activity-logs',
         name: 'ActivityLogs',
         component: () => import('@/pages/activity-logs/index.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Historial de Actividades',
-          icon: 'mdi-history',
-        }
+      },
+      {
+        path: 'test',
+        name: 'Test',
+        component: () => import('@/components/examples/ActionButtonsExample.vue'),
       },
     ],
   },

@@ -5,13 +5,14 @@
         <h1 class="text-h4">Gestión de Permisos y Accesos</h1>
       </v-col>
       <v-col cols="4" class="d-flex justify-end">
-        <v-btn 
+        <PermissionButton 
+          :permissions="['PERMISSION_CREATE']"
           color="primary" 
           prepend-icon="mdi-key-plus" 
           @click="openCreateDialog"
         >
           Nuevo Permiso
-        </v-btn>
+        </PermissionButton>
       </v-col>
     </v-row>
 
@@ -47,35 +48,27 @@
               class="elevation-1"
             >
               <template v-slot:item.actions="{ item }">
-                <v-tooltip text="Editar permiso" location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      icon
-                      variant="text"
-                      color="primary"
-                      v-bind="props"
-                      @click="openEditDialog(item)"
-                      :disabled="permissionsStore.loading"
-                    >
-                      <v-icon>mdi-pencil</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['PERMISSION_UPDATE']"
+                  icon="mdi-pencil"
+                  variant="text"
+                  color="primary"
+                  @click="openEditDialog(item)"
+                  :disabled="permissionsStore.loading"
+                  size="small"
+                  tooltip="Editar permiso"
+                />
                 
-                <v-tooltip text="Eliminar permiso" location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      icon
-                      variant="text"
-                      color="error"
-                      v-bind="props"
-                      @click="confirmDeletePermission(item)"
-                      :disabled="permissionsStore.loading"
-                    >
-                      <v-icon>mdi-delete</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['PERMISSION_DELETE']"
+                  icon="mdi-delete"
+                  variant="text"
+                  color="error"
+                  @click="confirmDeletePermission(item)"
+                  :disabled="permissionsStore.loading"
+                  size="small"
+                  tooltip="Eliminar permiso"
+                />
               </template>
             </v-data-table>
           </v-card-text>
@@ -105,34 +98,37 @@
                       :disabled="rolesStore.loading"
                     >
                       <template v-slot:append>
-                        <v-btn 
+                        <PermissionButton 
+                          :permissions="['ROLE_UPDATE']"
                           icon="mdi-pencil" 
                           variant="text" 
                           color="primary" 
                           size="small"
                           @click.stop="openEditRoleDialog(role)"
                           :disabled="rolesStore.loading"
-                        ></v-btn>
-                        <v-btn 
+                        />
+                        <PermissionButton 
+                          :permissions="['ROLE_DELETE']"
                           icon="mdi-delete" 
                           variant="text" 
                           color="error" 
                           size="small"
                           @click.stop="confirmDeleteRole(role)"
                           :disabled="rolesStore.loading"
-                        ></v-btn>
+                        />
                       </template>
                     </v-list-item>
                     
                     <div class="pa-2">
-                      <v-btn 
+                      <PermissionButton 
+                        :permissions="['ROLE_CREATE']"
                         color="primary" 
                         block 
                         prepend-icon="mdi-account-multiple-plus" 
                         @click="openCreateRoleDialog"
                       >
                         Nuevo Rol
-                      </v-btn>
+                      </PermissionButton>
                     </div>
                   </v-list>
                 </v-card>
@@ -182,7 +178,8 @@
                       density="comfortable"
                     ></v-autocomplete>
                     
-                    <v-btn 
+                    <PermissionButton 
+                      :permissions="['ROLE_UPDATE']"
                       color="primary" 
                       block
                       :disabled="!selectedPermissionIds.length || rolesStore.loading" 
@@ -190,7 +187,7 @@
                       class="mt-2"
                     >
                       Asignar Permisos
-                    </v-btn>
+                    </PermissionButton>
                   </v-card-text>
                 </v-card>
                 
@@ -489,10 +486,13 @@
 import { ref, onMounted, computed } from 'vue';
 import { usePermissionsStore } from '@/store/permissions';
 import { useRolesStore } from '@/store/roles';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Configuración del store
 const permissionsStore = usePermissionsStore();
 const rolesStore = useRolesStore();
+const userPermissionsStore = useUserPermissionsStore();
 
 // Estados reactivos
 const search = ref('');

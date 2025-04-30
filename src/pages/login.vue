@@ -79,7 +79,6 @@ const error = ref(null);
 async function handleLogin() {
   loading.value = true;
   error.value = null; // Limpia errores anteriores
-  console.log('Login: Iniciando proceso de login con usuario:', username.value);
   
   try {
     // Llamar al método login del store
@@ -88,12 +87,9 @@ async function handleLogin() {
       password: password.value 
     });
     
-    console.log('Login: Proceso de login completado exitosamente');
-    // La redirección se maneja dentro del store, pero podemos mostrar algún mensaje
-    // de éxito aquí si es necesario
+    // La redirección se maneja dentro del store
   } catch (err) {
-    console.error('Error completo capturado en componente login:', err); // Loguear el objeto completo
-    error.value = err?.message || 'Ocurrió un error inesperado. Revisa la consola para más detalles.';
+    error.value = err?.message || 'Ocurrió un error inesperado.';
     
     // Asegurarse de que el botón de login se habilite nuevamente
     setTimeout(() => {

@@ -32,7 +32,6 @@ public class RoleController {
      * @return List of all roles
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Role>> getAllRoles() {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
@@ -43,7 +42,6 @@ public class RoleController {
      * @return List of available role types
      */
     @GetMapping("/types")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Map<String, String>>> getRoleTypes() {
         List<Map<String, String>> roleTypes = Arrays.stream(RoleEnum.values())
                 .map(role -> Map.of(
@@ -62,7 +60,6 @@ public class RoleController {
      * @return Role if found
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<Role> getRoleById(@PathVariable Long id) {
         return roleService.getRoleById(id)
                 .map(ResponseEntity::ok)
@@ -76,7 +73,7 @@ public class RoleController {
      * @return Created role
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Role> createRole(@RequestBody Role role) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(roleService.createRole(role));
@@ -90,7 +87,7 @@ public class RoleController {
      * @return Updated role
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Role> updateRole(@PathVariable Long id, @RequestBody Role role) {
         try {
             return ResponseEntity.ok(roleService.updateRole(id, role));
@@ -106,7 +103,7 @@ public class RoleController {
      * @return No content if successful
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Void> deleteRole(@PathVariable Long id) {
         try {
             roleService.deleteRole(id);
@@ -124,7 +121,7 @@ public class RoleController {
      * @return Updated role
      */
     @PostMapping("/{id}/permissions")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Role> addPermissionsToRole(
             @PathVariable Long id,
             @RequestBody Map<String, Set<Long>> permissionIds) {
@@ -144,7 +141,7 @@ public class RoleController {
      * @return Updated role
      */
     @DeleteMapping("/{id}/permissions")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Role> removePermissionsFromRole(
             @PathVariable Long id,
             @RequestBody Map<String, Set<Long>> permissionIds) {

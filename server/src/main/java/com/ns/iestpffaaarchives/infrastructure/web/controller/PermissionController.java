@@ -31,7 +31,6 @@ public class PermissionController {
      * @return List of all permissions
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Permission>> getAllPermissions() {
         return ResponseEntity.ok(permissionService.getAllPermissions());
     }
@@ -42,7 +41,6 @@ public class PermissionController {
      * @return List of available permission types
      */
     @GetMapping("/types")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<List<Map<String, String>>> getPermissionTypes() {
         List<Map<String, String>> permissionTypes = Arrays.stream(PermissionEnum.values())
                 .map(permission -> Map.of(
@@ -61,7 +59,7 @@ public class PermissionController {
      * @return Permission if found
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Permission> getPermissionById(@PathVariable Long id) {
         return permissionService.getPermissionById(id)
                 .map(ResponseEntity::ok)
@@ -75,7 +73,7 @@ public class PermissionController {
      * @return Created permission
      */
     @PostMapping
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Permission> createPermission(@RequestBody Permission permission) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(permissionService.createPermission(permission));
@@ -89,7 +87,7 @@ public class PermissionController {
      * @return Updated permission
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Permission> updatePermission(@PathVariable Long id, @RequestBody Permission permission) {
         try {
             return ResponseEntity.ok(permissionService.updatePermission(id, permission));
@@ -105,7 +103,7 @@ public class PermissionController {
      * @return No content if successful
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<Void> deletePermission(@PathVariable Long id) {
         try {
             permissionService.deletePermission(id);

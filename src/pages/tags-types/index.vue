@@ -12,9 +12,15 @@
             <v-spacer></v-spacer>
             <v-dialog v-model="tagDialog" max-width="500px">
               <template v-slot:activator="{ props }">
-                <v-btn color="primary" v-bind="props" size="small">
-                  <v-icon>mdi-plus</v-icon> Nueva
-                </v-btn>
+                <PermissionButton 
+                  :permissions="['TAG_CREATE']"
+                  color="primary" 
+                  v-bind="props" 
+                  size="small"
+                  prepend-icon="mdi-plus"
+                >
+                  Nueva
+                </PermissionButton>
               </template>
               <v-card>
                 <v-card-title>
@@ -51,33 +57,22 @@
               class="elevation-1"
             >
               <template v-slot:item.actions="{ item }">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      class="mr-2"
-                      color="primary"
-                      size="small"
-                      @click="editItem('tag', item)"
-                    >
-                      mdi-pencil
-                    </v-icon>
-                  </template>
-                  <span>Editar</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      color="error"
-                      size="small"
-                      @click="deleteItem('tag', item)"
-                    >
-                      mdi-delete
-                    </v-icon>
-                  </template>
-                  <span>Eliminar</span>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['TAG_UPDATE']"
+                  icon="mdi-pencil"
+                  color="primary"
+                  size="small"
+                  @click="editItem('tag', item)"
+                  tooltip="Editar"
+                />
+                <PermissionButton
+                  :permissions="['TAG_DELETE']"
+                  icon="mdi-delete"
+                  color="error"
+                  size="small"
+                  @click="deleteItem('tag', item)"
+                  tooltip="Eliminar"
+                />
               </template>
             </v-data-table>
           </v-card-text>
@@ -93,9 +88,15 @@
             <v-spacer></v-spacer>
             <v-dialog v-model="typeDialog" max-width="500px">
               <template v-slot:activator="{ props }">
-                <v-btn color="primary" v-bind="props" size="small">
-                  <v-icon>mdi-plus</v-icon> Nuevo
-                </v-btn>
+                <PermissionButton 
+                  :permissions="['DOCUMENT_TYPE_CREATE']"
+                  color="primary" 
+                  v-bind="props" 
+                  size="small"
+                  prepend-icon="mdi-plus"
+                >
+                  Nuevo
+                </PermissionButton>
               </template>
               <v-card>
                 <v-card-title>
@@ -147,33 +148,22 @@
                 </v-tooltip>
               </template>
               <template v-slot:item.actions="{ item }">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      class="mr-2"
-                      color="primary"
-                      size="small"
-                      @click="editItem('type', item)"
-                    >
-                      mdi-pencil
-                    </v-icon>
-                  </template>
-                  <span>Editar</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      color="error"
-                      size="small"
-                      @click="deleteItem('type', item)"
-                    >
-                      mdi-delete
-                    </v-icon>
-                  </template>
-                  <span>Eliminar</span>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['DOCUMENT_TYPE_UPDATE']"
+                  icon="mdi-pencil"
+                  color="primary"
+                  size="small"
+                  @click="editItem('type', item)"
+                  tooltip="Editar"
+                />
+                <PermissionButton
+                  :permissions="['DOCUMENT_TYPE_DELETE']"
+                  icon="mdi-delete"
+                  color="error"
+                  size="small"
+                  @click="deleteItem('type', item)"
+                  tooltip="Eliminar"
+                />
               </template>
             </v-data-table>
           </v-card-text>
@@ -210,6 +200,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Utilidades para API con fetch
 // Obtenemos la URL base desde las variables de entorno
@@ -365,6 +357,9 @@ const snackbar = ref({
   text: '',
   color: 'success',
 });
+
+// Store de permisos
+const userPermissionsStore = useUserPermissionsStore();
 
 // Funciones para los títulos de formularios
 const formTitle = (type) => {

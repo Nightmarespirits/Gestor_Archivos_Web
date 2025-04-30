@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -63,6 +64,7 @@ public class DocumentController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<DocumentDTO>> getAllDocuments() {
         try {
             List<Document> documents = documentService.getAllDocuments();
@@ -76,6 +78,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<DocumentDTO> getDocumentById(@PathVariable Long id) {
         return documentService.getDocumentById(id)
             .map(document -> ResponseEntity.ok(DocumentMapper.toDTO(document)))
@@ -83,12 +86,14 @@ public class DocumentController {
     }
 
     @GetMapping("/tag/{tagName}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<DocumentDTO>> getDocumentsByTag(@PathVariable String tagName) {
         List<Document> documents = documentService.getDocumentsByTag(tagName);
         return ResponseEntity.ok(DocumentMapper.toDTOList(documents));
     }
 
     @GetMapping("/author/{authorId}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<DocumentDTO>> getDocumentsByAuthor(@PathVariable Long authorId) {
         Optional<User> authorOptional = userService.getUserById(authorId);
         
@@ -101,6 +106,7 @@ public class DocumentController {
     }
 
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<DocumentDTO>> searchDocuments(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
@@ -117,6 +123,7 @@ public class DocumentController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('DOCUMENT_CREATE')")
     public ResponseEntity<?> createDocument(
             @RequestParam("file") MultipartFile file,
             @RequestParam("title") String title,
@@ -147,6 +154,9 @@ public class DocumentController {
             return ResponseEntity.badRequest().body("El tipo de documento especificado no existe (Tipo: " + type + ")");
         }
         
+        // Variable para el nombre del archivo
+        String uniqueFilename = null;
+        
         try {
             // Crear directorio de carga si no existe
             Path uploadPath = Paths.get(uploadDir);
@@ -154,14 +164,18 @@ public class DocumentController {
                 Files.createDirectories(uploadPath);
             }
             
+            logger.info("Ruta de directorio de carga: {}", uploadPath.toAbsolutePath());
+            
             // Generar nombre de archivo único
             String originalFilename = file.getOriginalFilename();
             String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-            String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
+            uniqueFilename = UUID.randomUUID().toString() + fileExtension;
             
             // Guardar archivo
             Path filePath = uploadPath.resolve(uniqueFilename);
+            logger.info("Guardando archivo en: {}", filePath.toAbsolutePath());
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            logger.info("Archivo guardado correctamente: {}", filePath.getFileName());
             
             // Procesar tags
             Set<Tag> tags = new HashSet<>();
@@ -197,22 +211,25 @@ public class DocumentController {
         } catch (IOException e) {
             // Eliminar el archivo si se subió pero hubo un error al crear el documento
             try {
-                Path filePath = Paths.get(uploadDir).resolve(UUID.randomUUID().toString() + 
-                    file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".")));
+                logger.error("Error al procesar el archivo: {}", e.getMessage(), e);
+                Path filePath = Paths.get(uploadDir).resolve(uniqueFilename);
                 Files.deleteIfExists(filePath);
+                logger.info("Se eliminó el archivo temporal: {}", filePath.getFileName());
             } catch (IOException deleteError) {
                 // Log error de limpieza
-                deleteError.printStackTrace();
+                logger.error("Error al eliminar el archivo temporal: {}", deleteError.getMessage(), deleteError);
             }
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error al procesar el archivo: " + e.getMessage());
         } catch (Exception e) {
+            logger.error("Error inesperado al crear el documento: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Error inesperado al crear el documento: " + e.getMessage());
         }
     }
 
     @GetMapping("/download/{id}")
+    @PreAuthorize("hasAuthority('FILE_DOWNLOAD')")
     public ResponseEntity<Resource> downloadDocument(@PathVariable Long id) {
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         
@@ -240,6 +257,7 @@ public class DocumentController {
     }
 
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<DocumentDTO> updateDocument(
             @PathVariable Long id,
             @RequestParam(value = "title", required = false) String title,
@@ -288,6 +306,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_DELETE')")
     public ResponseEntity<Void> softDeleteDocument(@PathVariable Long id) {
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         
@@ -300,6 +319,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/permanent/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_DELETE')")
     public ResponseEntity<Void> hardDeleteDocument(@PathVariable Long id) {
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         

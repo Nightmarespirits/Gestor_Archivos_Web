@@ -8,23 +8,25 @@ import java.util.Set;
  * Enum that defines the standard roles in the system.
  */
 public enum RoleEnum {
-    ADMIN("Administrator", "Full system access", 
+    SUPERADMIN("Superadministrador", "Acceso total al sistema", 
         PermissionEnum.values()),
         
-    MANAGER("Manager", "Can manage documents and users", 
-        PermissionEnum.USER_READ, PermissionEnum.USER_UPDATE,
-        PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, 
-        PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
-        PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, 
-        PermissionEnum.FILE_DELETE, PermissionEnum.ARCHIVE_MANAGE),
-        
-    ARCHIVIST("Archivist", "Can manage documents and archives", 
-        PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, 
-        PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
-        PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, 
+    ADMIN("Administrador", "Acceso administrativo sin gestión de roles ni configuración de sistema",
+        PermissionEnum.USER_READ, PermissionEnum.USER_UPDATE, PermissionEnum.USER_DELETE,
+        PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
+        PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, PermissionEnum.FILE_DELETE,
         PermissionEnum.ARCHIVE_MANAGE),
         
-    USER("User", "Basic user with limited access", 
+    MANAGER("Gestor", "Puede gestionar documentos y usuarios",
+        PermissionEnum.USER_READ, PermissionEnum.USER_UPDATE,
+        PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
+        PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, PermissionEnum.FILE_DELETE, PermissionEnum.ARCHIVE_MANAGE),
+        
+    ARCHIVIST("Archivista", "Puede gestionar documentos y archivos históricos",
+        PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
+        PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, PermissionEnum.ARCHIVE_MANAGE),
+        
+    USER("Usuario", "Usuario básico con acceso limitado",
         PermissionEnum.DOCUMENT_READ, PermissionEnum.FILE_DOWNLOAD);
     
     private final String displayName;

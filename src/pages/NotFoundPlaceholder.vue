@@ -29,15 +29,6 @@
   </v-container>
 </template>
 
-<script setup>
-// Este componente no requiere lógica adicional por ahora
-import { onMounted } from 'vue';
-
-onMounted(() => {
-  console.log('NotFoundPlaceholder component mounted');
-});
-</script>
-
 <style scoped>
 /* Estilos específicos si son necesarios */
 </style>

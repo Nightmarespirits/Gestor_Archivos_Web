@@ -14,16 +14,32 @@
               <div class="d-flex align-center">
                 <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="goBack">Volver</v-btn>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" prepend-icon="mdi-download" class="mr-2" @click="downloadDocument">Descargar</v-btn>
-                <v-btn color="warning" prepend-icon="mdi-pencil" class="mr-2" @click="editDocument">Editar</v-btn>
-                <v-btn 
-                  v-if="authStore.user?.role?.name === 'ADMIN'"
+                <PermissionButton 
+                  :permissions="['FILE_DOWNLOAD']"
+                  color="primary" 
+                  prepend-icon="mdi-download" 
+                  class="mr-2" 
+                  @click="downloadDocument"
+                >
+                  Descargar
+                </PermissionButton>
+                <PermissionButton 
+                  :permissions="['DOCUMENT_UPDATE']"
+                  color="warning" 
+                  prepend-icon="mdi-pencil" 
+                  class="mr-2" 
+                  @click="editDocument"
+                >
+                  Editar
+                </PermissionButton>
+                <PermissionButton 
+                  :permissions="['DOCUMENT_DELETE']"
                   color="error" 
                   prepend-icon="mdi-delete" 
                   @click="confirmDeleteDocument"
                 >
                   Eliminar
-                </v-btn>
+                </PermissionButton>
               </div>
             </v-card-text>
           </v-card>
@@ -147,18 +163,18 @@
             <v-card-text class="d-flex flex-column align-center justify-center" style="height: calc(100% - 64px);">
               <template v-if="isPDF">
                 <v-img src="@/assets/pdf-preview.png" max-height="200" contain class="mb-4"></v-img>
-                <v-btn color="primary" prepend-icon="mdi-eye" @click="showPreviewDialog = true" class="mr-2">Ver PDF</v-btn>
-                <v-btn color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</v-btn>
+                <PermissionButton :permissions="['DOCUMENT_READ']" color="primary" prepend-icon="mdi-eye" @click="showPreviewDialog = true" class="mr-2">Ver PDF</PermissionButton>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</PermissionButton>
               </template>
               <template v-else-if="isImage">
-                <v-img :src="getDocumentDownloadUrl" max-height="300" contain class="mb-4" @click="showPreviewDialog = true" style="cursor: pointer;"></v-img>
-                <v-btn color="primary" prepend-icon="mdi-fullscreen" @click="showPreviewDialog = true" class="mr-2">Maximizar</v-btn>
-                <v-btn color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</v-btn>
+                <v-img :src="getDocumentPreviewUrl" max-height="300" contain class="mb-4" @click="showPreviewDialog = true" style="cursor: pointer;"></v-img>
+                <PermissionButton :permissions="['DOCUMENT_READ']" color="primary" prepend-icon="mdi-fullscreen" @click="showPreviewDialog = true" class="mr-2">Maximizar</PermissionButton>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</PermissionButton>
               </template>
               <template v-else>
                 <v-icon size="100" color="grey lighten-1" class="mb-4">mdi-file-document-outline</v-icon>
                 <div class="text-body-1 text-center">No hay vista previa disponible para este tipo de archivo.</div>
-                <v-btn color="primary" prepend-icon="mdi-download" class="mt-4" @click="downloadDocument">Descargar archivo</v-btn>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="primary" prepend-icon="mdi-download" class="mt-4" @click="downloadDocument">Descargar archivo</PermissionButton>
               </template>
             </v-card-text>
           </v-card>
@@ -209,24 +225,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="showPreviewDialog" fullscreen transition="dialog-bottom-transition">
+    <v-dialog v-model="showPreviewDialog" fullscreen>
       <v-card>
-        <v-toolbar dark color="primary">
-          <v-btn icon dark @click="showPreviewDialog = false">
+        <v-toolbar color="primary">
+          <v-btn icon @click="showPreviewDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          <v-toolbar-title>{{ document?.title || 'Vista previa' }}</v-toolbar-title>
+          <v-toolbar-title>Vista previa: {{ document?.title }}</v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-btn icon dark @click="downloadDocument">
-            <v-icon>mdi-download</v-icon>
+          <v-btn 
+            prepend-icon="mdi-download" 
+            @click="downloadDocument"
+            color="white"
+            variant="text"
+          >
+            Descargar
           </v-btn>
         </v-toolbar>
-        <v-card-text class="pa-0 d-flex justify-center align-center" style="height: calc(100vh - 64px); background-color: #f5f5f5;">
+        <v-card-text class="d-flex justify-center align-center pa-0" style="height: calc(100vh - 64px);">
           <template v-if="isPDF">
-            <iframe :src="getDocumentDownloadUrl" width="100%" height="100%" frameborder="0"></iframe>
+            <iframe 
+              :src="getDocumentPreviewUrl" 
+              width="100%" 
+              height="100%" 
+              style="border: none;"
+              type="application/pdf"
+            ></iframe>
           </template>
           <template v-else-if="isImage">
-            <v-img :src="getDocumentDownloadUrl" max-height="90vh" max-width="90vw" contain class="elevation-2"></v-img>
+            <v-img 
+              :src="getDocumentPreviewUrl" 
+              max-height="90vh" 
+              contain 
+              class="mx-auto"
+            ></v-img>
           </template>
         </v-card-text>
       </v-card>
@@ -244,10 +276,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
-import { useAuthStore } from '@/store/auth';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 const documentsStore = useDocumentsStore();
-const authStore = useAuthStore();
+const userPermissionsStore = useUserPermissionsStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -279,10 +312,20 @@ const isImage = computed(() => {
 
 const getDocumentDownloadUrl = computed(() => {
   if (!document.value) return '';
-  return documentsStore.getDocumentDownloadUrl(document.value.id);
+  return `${import.meta.env.VITE_BASE_URL}/documents/download/${document.value.id}`;
+});
+
+const getDocumentPreviewUrl = computed(() => {
+  if (!document.value) return '';
+  if (isPDF.value || isImage.value) {
+    return `${import.meta.env.VITE_BASE_URL}/documents/download/${document.value.id}`;
+  }
+  return '';
 });
 
 const metadata = computed(() => document.value?.metadata || null);
+
+const permissions = userPermissionsStore.permissions;
 
 onMounted(async () => {
   await loadDocument();
@@ -308,8 +351,16 @@ function editDocument() {
   router.push(`/documents/${documentId.value}/edit`);
 }
 
-function downloadDocument() {
-  window.open(getDocumentDownloadUrl.value, '_blank');
+async function downloadDocument() {
+  try {
+    loading.value = true;
+    await documentsStore.downloadDocument(documentId.value);
+    showSuccess('Documento descargado correctamente');
+  } catch (error) {
+    showError('Error al descargar el documento: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
 }
 
 function confirmDeleteDocument() {

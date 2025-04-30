@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(credentials) {
     try {
-      console.log('Auth store: Intentando login con credenciales:', credentials.username);
+      // Intentar autenticar al usuario
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -58,15 +58,13 @@ export const useAuthStore = defineStore('auth', () => {
           }
         } catch (e) {
           // Si falla el parseo JSON o text(), usa el mensaje genérico
-          console.error('Could not parse error response:', e);
         }
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log('Login response data:', data); // Log para depuración
       
-      // Asegurarse de que el rol esté correctamente estructurado
+      // Normalización del rol del usuario para asegurar un formato consistente
       let userRole = data.role;
       
       // Si el rol es un string, convertirlo a objeto para mantener consistencia
@@ -87,9 +85,8 @@ export const useAuthStore = defineStore('auth', () => {
         role: userRole
       };
       
-      console.log('User data to be stored:', userData); // Log para depuración
       setAuthData(data.token, userData);
-      isInitialized.value = true; // Marcar como inicializado después de login exitoso
+      isInitialized.value = true;
 
       // Registrar la actividad de login
       await activityLogsStore.createActivityLog(
@@ -97,28 +94,18 @@ export const useAuthStore = defineStore('auth', () => {
         `Usuario ${userData.username} ha iniciado sesión`
       );
       
-      // Redirige al dashboard después del login con un pequeño retraso
-      // para asegurar que el estado se actualice completamente
-      console.log('Auth store: Login exitoso, intentando redireccionar...');
-      
-      // Intenta redirigir al dashboard o a la página principal
-      // Si estamos en modo mantenimiento o pruebas, y router no está disponible, no lanzamos error
+      // Redirige al dashboard después del login
       try {
         router.push('/'); 
-        console.log('Auth store: Redirección exitosa');
       } catch (routerError) {
-        console.error('Error en redirección del router:', routerError);
-        // No propagamos este error, ya que el login fue exitoso
-        // En este caso, el usuario podría recargar la página manualmente
-        window.location.href = '/'; // Fallback a redirección nativa
+        // Fallback a redirección nativa si hay un problema con el router
+        window.location.href = '/';
       }
       
-      return userData; // Devolvemos los datos del usuario para uso opcional
+      return userData;
     } catch (error) {
-      console.error('Error detallado en store auth.js:', error); // Loguear error completo aquí
       clearAuthData(); // Limpia datos si el login falla
       isInitialized.value = true; // Marcar como inicializado incluso si falla
-      // Podrías manejar el error mostrando un mensaje al usuario
       throw error; // Propaga el error para manejarlo en el componente
     }
   }
@@ -141,20 +128,17 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Función para verificar el estado de autenticación al cargar la app
   async function checkAuth() {
-    console.log('Auth store: checking authentication state...');
     try {
       isInitialized.value = false; // Marcar como no inicializado mientras verificamos
       const storedToken = localStorage.getItem('authToken');
       if (!storedToken) {
           clearAuthData();
-          console.log('Auth store: no token found');
           return false;
       } else {
           // Obtener y analizar el usuario almacenado
           const storedUser = JSON.parse(localStorage.getItem('authUser') || '{}');
-          console.log('Auth store: stored user data:', storedUser);
           
-          // Verificar si el usuario tiene la estructura correcta de rol
+          // Normalizar la estructura del rol
           if (storedUser.role) {
             if (typeof storedUser.role === 'string') {
               storedUser.role = { name: storedUser.role };
@@ -163,41 +147,31 @@ export const useAuthStore = defineStore('auth', () => {
             }
           }
           
-          // Opcional: Aquí podrías hacer una llamada a un endpoint para validar el token
-          try {
-            // Descomenta y ajusta esto si quieres validar el token en el servidor
-            /* 
-            const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${storedToken}`
-              }
-            });
-            
-            if (!response.ok) {
-              throw new Error('Token inválido');
+          // Aquí se podría implementar una validación del token en el servidor
+          /* 
+          const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${storedToken}`
             }
-            */
+          });
             
-            // Si el token es válido, establecer los datos de autenticación
-            token.value = storedToken;
-            user.value = storedUser;
-            console.log('Auth store: token found and validated, user restored with role:', user.value?.role);
-            return true;
-          } catch (validationError) {
-            console.error('Error validating token:', validationError);
-            clearAuthData();
-            return false;
+          if (!response.ok) {
+            throw new Error('Token inválido');
           }
+          */
+            
+          // Restaurar el estado de autenticación
+          token.value = storedToken;
+          user.value = storedUser;
+          return true;
       }
     } catch (error) {
-      console.error('Error checking auth:', error);
       clearAuthData();
       return false;
     } finally {
       // Siempre marcamos como inicializado, independientemente del resultado
       isInitialized.value = true;
-      console.log('Auth store: initialization completed, authenticated:', isAuthenticated.value);
     }
   }
 

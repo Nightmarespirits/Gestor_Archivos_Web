@@ -38,17 +38,62 @@
     <v-divider></v-divider>
 
     <v-list density="compact" nav>
+      <!-- Dashboard - Visible para todos -->
       <v-list-item prepend-icon="mdi-view-dashboard" title="Dashboard" value="dashboard" to="/"></v-list-item>
 
-      <v-list-item prepend-icon="mdi-text-box-search-outline" title="Buscar Documentos" value="search_docs" to="/search-documents"></v-list-item>
+      <!-- Buscar Documentos - Visible para cualquiera con DOCUMENT_READ -->
+      <v-list-item 
+        v-if="hasPermission('DOCUMENT_READ')" 
+        prepend-icon="mdi-text-box-search-outline" 
+        title="Buscar Documentos" 
+        value="search_docs" 
+        to="/search-documents">
+      </v-list-item>
 
-      <template v-if="authStore.user?.role?.name === 'ADMIN'">
-        <v-list-item prepend-icon="mdi-file-document-outline" title="Gestión Documentos" value="documents" to="/documents"></v-list-item>
-        <v-list-item prepend-icon="mdi-tag-multiple-outline" title="Etiquetas y Tipos" value="tags_types" to="/tags-types"></v-list-item>
-        <v-list-item prepend-icon="mdi-account-group-outline" title="Gestión Usuarios" value="users" to="/users"></v-list-item>
-        <v-list-item prepend-icon="mdi-history" title="Historial Actividades" value="history" to="/activity-log"></v-list-item>
-        <v-list-item prepend-icon="mdi-security" title="Accesos y Controles" value="access" to="/access-control"></v-list-item>
-      </template>
+      <!-- Gestión Documentos - Visible para roles que pueden crear/editar documentos -->
+      <v-list-item 
+        v-if="hasPermission('DOCUMENT_CREATE') || hasPermission('DOCUMENT_UPDATE')" 
+        prepend-icon="mdi-file-document-outline" 
+        title="Gestión Documentos" 
+        value="documents" 
+        to="/documents">
+      </v-list-item>
+
+      <!-- Etiquetas y Tipos - Visible principalmente para administración -->
+      <v-list-item 
+        v-if="hasAdminAccess" 
+        prepend-icon="mdi-tag-multiple-outline" 
+        title="Etiquetas y Tipos" 
+        value="tags_types" 
+        to="/tags-types">
+      </v-list-item>
+
+      <!-- Gestión Usuarios - Visible para roles con USER_READ/UPDATE (ADMIN, MANAGER) -->
+      <v-list-item 
+        v-if="hasPermission('USER_READ')" 
+        prepend-icon="mdi-account-group-outline" 
+        title="Gestión Usuarios" 
+        value="users" 
+        to="/users">
+      </v-list-item>
+
+      <!-- Historial Actividades - Visible para permisos administrativos o AUDIT_LOG_VIEW -->
+      <v-list-item 
+        v-if="hasPermission('AUDIT_LOG_VIEW') || hasAdminAccess" 
+        prepend-icon="mdi-history" 
+        title="Historial Actividades" 
+        value="history" 
+        to="/activity-log">
+      </v-list-item>
+
+      <!-- Accesos y Controles - Solo para SUPERADMIN (ROLE_MANAGE, SYSTEM_CONFIG) -->
+      <v-list-item 
+        v-if="hasPermission('ROLE_MANAGE')" 
+        prepend-icon="mdi-security" 
+        title="Accesos y Controles" 
+        value="access" 
+        to="/access-control">
+      </v-list-item>
     </v-list>
 
     <template v-slot:append>
@@ -64,6 +109,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useAuthStore } from '@/store/auth';
+import { useUserPermissionsStore } from '@/store/userPermissions';
 import UserInitialsAvatar from './UserInitialsAvatar.vue';
 
 const props = defineProps({
@@ -81,15 +127,42 @@ const drawerModel = computed({
 });
 
 const authStore = useAuthStore();
+const permissionStore = useUserPermissionsStore();
 
-const navigationItems = [
-  {
-    title: 'Historial de Actividades',
-    icon: 'mdi-history',
-    to: '/activity-logs',
-    requiredRole: 'ADMIN'
-  }
-];
+// Función para verificar si el usuario tiene un permiso específico
+function hasPermission(permission) {
+  return permissionStore.hasPermission(permission);
+}
+
+// Verificar si el usuario tiene cualquiera de los permisos listados
+function hasAnyPermission(permissions) {
+  return permissionStore.hasAnyPermission(permissions);
+}
+
+// Verificar si el usuario tiene acceso de nivel administrativo
+const hasAdminAccess = computed(() => {
+  // Verificar si el usuario tiene un rol administrativo (ADMIN o SUPERADMIN)
+  const role = authStore.user?.role?.name?.toUpperCase();
+  return role === 'ADMIN' || role === 'SUPERADMIN' || role === 'ADMINISTRADOR';
+});
+
+// Verificar si el usuario es específicamente un super administrador
+const isSuperAdmin = computed(() => {
+  const role = authStore.user?.role?.name?.toUpperCase();
+  return role === 'SUPERADMIN';
+});
+
+// Verificar si el usuario es específicamente un Manager
+const isManager = computed(() => {
+  const role = authStore.user?.role?.name?.toUpperCase();
+  return role === 'MANAGER' || role === 'GESTOR';
+});
+
+// Verificar si el usuario es un archivista
+const isArchivist = computed(() => {
+  const role = authStore.user?.role?.name?.toUpperCase();
+  return role === 'ARCHIVIST' || role === 'ARCHIVISTA';
+});
 
 function handleLogout() {
   authStore.logout();

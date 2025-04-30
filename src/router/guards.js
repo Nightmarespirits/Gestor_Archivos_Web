@@ -1,77 +1,69 @@
-// src/router/guards.js
 import { useAuthStore } from '@/store/auth';
-import { storeToRefs } from 'pinia'; // Needed to properly get reactive state outside components
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import { storeToRefs } from 'pinia';
 
+/**
+ * Crea un guard de autenticación y autorización para el router
+ * @param {Object} router - Instancia de Vue Router
+ * @param {Object} piniaInstance - Instancia de Pinia
+ */
 export function createAuthGuard(router, piniaInstance) {
-  router.beforeEach(async (to, from, next) => { // Make the guard async
-    // It's crucial to get a fresh instance of the store *inside* the guard
-    // or pass the pinia instance and use it
+  router.beforeEach(async (to, from, next) => {
+    // Obtención reactiva del estado de autenticación y permisos
     const authStore = useAuthStore(piniaInstance);
-    // Use storeToRefs for reactivity AND get isInitialized
+    const permissionStore = useUserPermissionsStore(piniaInstance);
     const { isAuthenticated, user, isInitialized } = storeToRefs(authStore);
 
-    console.log('[AuthGuard] Running for route:', to.path);
-    console.log('[AuthGuard] Store Initialized:', isInitialized.value);
-    console.log('[AuthGuard] Is Authenticated:', isAuthenticated.value);
-    console.log('[AuthGuard] User Data:', JSON.stringify(user.value)); // Log user data
-
-    const requiresAuth = to.meta.requiresAuth;
-    const requiredRole = to.meta.requiredRole;
-
     // Si la autenticación no se ha inicializado, permitimos continuar
-    // App.vue mostrará el spinner de carga y luego redirigirá si es necesario
     if (!isInitialized.value) {
-      console.log('[AuthGuard] Auth store not initialized yet. App.vue will handle display.');
       return next();
     }
 
     // Si la ruta requiere autenticación y el usuario no está autenticado
-    if (requiresAuth && !isAuthenticated.value) {
-      console.log('[AuthGuard] Route requires auth but user is not authenticated.');
+    if (to.meta.requiresAuth && !isAuthenticated.value) {
       return next({ name: 'Login', query: { redirect: to.fullPath } });
     }
 
     // Si el usuario está autenticado y trata de acceder a la página de login
     if (to.name === 'Login' && isAuthenticated.value) {
-      console.log('[AuthGuard] Authenticated user trying to access login page.');
       return next('/');
     }
 
-    // Si la ruta requiere un rol específico
-    if (requiresAuth && requiredRole && isAuthenticated.value) {
-      // Obtener el rol del usuario (podría estar en diferentes formatos)
-      const userRoleObj = user.value?.role;
-      console.log('[AuthGuard] User role object:', userRoleObj);
-      
-      // Extraer el nombre del rol, considerando diferentes estructuras posibles
-      let userRole = '';
-      if (typeof userRoleObj === 'string') {
-        userRole = userRoleObj;
-      } else if (userRoleObj && typeof userRoleObj === 'object') {
-        userRole = userRoleObj.name || userRoleObj.roleName || '';
+    // Verificación de permisos y roles para rutas protegidas
+    if (to.meta.requiresAuth && isAuthenticated.value) {
+      // Cargar permisos si aún no están cargados
+      if (!permissionStore.initialized) {
+        await permissionStore.loadUserPermissions();
       }
-      
-      console.log('[AuthGuard] Required Role:', requiredRole, 'User Role extracted:', userRole);
-      
-      // Normalizar los roles para comparación (convertir a mayúsculas y eliminar prefijos comunes)
-      const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
-      const normalizedRequiredRole = requiredRole.toUpperCase().replace('ROLE_', '');
-      
-      console.log('[AuthGuard] Normalized comparison:', normalizedUserRole, 'vs', normalizedRequiredRole);
-      
-      // Verificar si el rol del usuario coincide con alguno de los roles aceptados
-      const isAuthorized = normalizedUserRole === normalizedRequiredRole || 
-                          (normalizedRequiredRole === 'ADMIN' && normalizedUserRole === 'ADMINISTRADOR') ||
-                          (normalizedRequiredRole === 'ADMINISTRADOR' && normalizedUserRole === 'ADMIN');
-      
-      if (!userRole || !isAuthorized) {
-        console.log('[AuthGuard] Role mismatch or missing, redirecting to Unauthorized.');
-        return next({ name: 'Unauthorized' });
+
+      // --- NUEVA LÓGICA DE PERMISOS Y ROLES COMO LISTAS ---
+      // Verificar permisos requeridos (si están definidos)
+      if (Array.isArray(to.meta.requiredPermissions) && to.meta.requiredPermissions.length > 0) {
+        const userPermissions = permissionStore.permissions || [];
+        const hasSomePermission = to.meta.requiredPermissions.some(p => userPermissions.includes(p));
+        if (!hasSomePermission) {
+          return next({ name: 'Unauthorized' });
+        }
+      }
+      // Verificar roles requeridos (si están definidos)
+      if (Array.isArray(to.meta.requiredRoles) && to.meta.requiredRoles.length > 0) {
+        const userRole = user.value?.role;
+        // Soportar tanto string como objeto de rol
+        let userRoleName = '';
+        if (typeof userRole === 'string') {
+          userRoleName = userRole;
+        } else if (userRole && typeof userRole === 'object') {
+          userRoleName = userRole.name || userRole.roleName || '';
+        }
+        userRoleName = userRoleName.toUpperCase().replace('ROLE_', '');
+        // Permitir si el usuario tiene al menos uno de los roles requeridos
+        const hasSomeRole = to.meta.requiredRoles.map(r => r.toUpperCase().replace('ROLE_', '')).includes(userRoleName);
+        if (!userRoleName || !hasSomeRole) {
+          return next({ name: 'Unauthorized' });
+        }
       }
     }
-
     // En todos los demás casos, permitir la navegación
-    console.log('[AuthGuard] Navigation allowed.');
     return next();
   });
 }

@@ -5,13 +5,14 @@
         <h1 class="text-h4">Gestión de Usuarios</h1>
       </v-col>
       <v-col cols="4" class="d-flex justify-end">
-        <v-btn 
+        <PermissionButton 
+          :permissions="['USER_CREATE']"
           color="primary" 
           prepend-icon="mdi-account-plus" 
           @click="openCreateDialog"
         >
           Nuevo Usuario
-        </v-btn>
+        </PermissionButton>
       </v-col>
     </v-row>
 
@@ -64,35 +65,27 @@
           </template>
           
           <template v-slot:item.actions="{ item }">
-            <v-tooltip text="Editar usuario" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="primary"
-                  v-bind="props"
-                  @click="navigateToEdit(item)"
-                  :disabled="usersStore.loading"
-                >
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <PermissionButton
+              :permissions="['USER_UPDATE']"
+              icon="mdi-pencil"
+              variant="text"
+              color="primary"
+              @click="navigateToEdit(item)"
+              :disabled="usersStore.loading"
+              size="small"
+              :tooltip="'Editar usuario'"
+            />
             
-            <v-tooltip :text="item.status ? 'Desactivar' : 'Activar'" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  :color="item.status ? 'error' : 'success'"
-                  v-bind="props"
-                  @click="toggleUserStatus(item)"
-                  :disabled="usersStore.loading"
-                >
-                  <v-icon>{{ item.status ? 'mdi-account-cancel' : 'mdi-account-check' }}</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <PermissionButton
+              :permissions="['USER_UPDATE']"
+              :icon="item.status ? 'mdi-account-cancel' : 'mdi-account-check'"
+              variant="text"
+              :color="item.status ? 'error' : 'success'"
+              @click="toggleUserStatus(item)"
+              :disabled="usersStore.loading"
+              size="small"
+              :tooltip="item.status ? 'Desactivar' : 'Activar'"
+            />
           </template>
         </v-data-table>
       </v-card-text>
@@ -166,14 +159,15 @@
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn color="error" text @click="createDialog = false">Cancelar</v-btn>
-          <v-btn 
+          <PermissionButton 
+            :permissions="['USER_CREATE']"
             color="primary" 
             text 
             @click="createUser"
             :loading="usersStore.loading"
           >
             Guardar
-          </v-btn>
+          </PermissionButton>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -277,11 +271,14 @@ import { ref, onMounted, computed } from 'vue';
 import { useUsersStore } from '@/store/users';
 import { useAuthStore } from '@/store/auth';
 import { useRouter } from 'vue-router';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Stores
 const usersStore = useUsersStore();
 const authStore = useAuthStore();
 const router = useRouter();
+const permissionsStore = useUserPermissionsStore();
 
 // Referencias a los formularios para validación
 const createForm = ref(null);
@@ -334,12 +331,6 @@ const headers = [
 // Cargar datos al montar el componente
 onMounted(async () => {
   try {
-    // Verificar que el usuario es administrador
-    if (authStore.user?.role?.name !== 'ADMIN') {
-      showSnackbar('No tienes permisos para acceder a esta página', 'error');
-      return;
-    }
-    
     // Cargar roles para los selects
     await loadRoles();
     
@@ -376,29 +367,7 @@ async function loadRoles() {
 
 // Funciones para CRUD
 function openCreateDialog() {
-  // Obtener el rol del usuario
-  const userRoleObj = authStore.user?.role;
-  console.log('Rol del usuario:', userRoleObj);
-  
-  // Extraer el nombre del rol, considerando diferentes estructuras posibles
-  let userRole = '';
-  if (typeof userRoleObj === 'string') {
-    userRole = userRoleObj;
-  } else if (userRoleObj && typeof userRoleObj === 'object') {
-    userRole = userRoleObj.name || userRoleObj.roleName || '';
-  }
-  
-  // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
-  const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
-  
-  // Verificar que el usuario tiene permisos para crear usuarios
-  if (normalizedUserRole === 'ADMIN' || normalizedUserRole === 'ADMINISTRADOR') {
-    console.log('Redirigiendo a pantalla de creación de usuario...');
-    router.push('/users/create');
-  } else {
-    console.warn('Usuario intenta crear un usuario sin tener permisos de ADMIN');
-    showSnackbar('No tienes permisos para crear usuarios', 'error');
-  }
+  router.push('/users/create');
 }
 
 function navigateToEdit(user) {

@@ -119,14 +119,15 @@
                 >
                   Limpiar
                 </v-btn>
-                <v-btn
+                <PermissionButton
+                  :permissions="['DOCUMENT_CREATE']"
                   color="primary"
                   type="submit"
                   :loading="loading"
                   :disabled="loading"
                 >
                   Guardar Documento
-                </v-btn>
+                </PermissionButton>
               </div>
             </v-form>
           </v-card-text>
@@ -157,11 +158,12 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
-import { useAuthStore } from '@/store/auth';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Stores y router
 const documentsStore = useDocumentsStore();
-const authStore = useAuthStore();
+const userPermissionsStore = useUserPermissionsStore();
 const router = useRouter();
 
 // Referencias
@@ -200,8 +202,8 @@ onMounted(async () => {
     availableTags.value = await documentsStore.fetchTags();
     
     // Establecer el autor actual
-    if (authStore.user && authStore.user.id) {
-      formData.value.authorId = authStore.user.id;
+    if (userPermissionsStore.user && userPermissionsStore.user.id) {
+      formData.value.authorId = userPermissionsStore.user.id;
     }
     
   } catch (error) {
@@ -276,7 +278,7 @@ function resetForm() {
     type: null,
     tags: [],
     file: null,
-    authorId: authStore.user ? authStore.user.id : null
+    authorId: userPermissionsStore.user ? userPermissionsStore.user.id : null
   };
   
   if (form.value) {

@@ -5,6 +5,7 @@ import com.ns.iestpffaaarchives.application.service.DocumentTypeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
@@ -21,12 +22,14 @@ public class DocumentTypeController {
     }
     
     @GetMapping
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<DocumentType>> getAllDocumentTypes() {
         List<DocumentType> documentTypes = documentTypeService.getAllDocumentTypes();
         return ResponseEntity.ok(documentTypes);
     }
     
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<DocumentType> getDocumentTypeById(@PathVariable Long id) {
         Optional<DocumentType> documentType = documentTypeService.getDocumentTypeById(id);
         return documentType.map(ResponseEntity::ok)
@@ -34,6 +37,7 @@ public class DocumentTypeController {
     }
     
     @PostMapping
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<?> createDocumentType(@RequestBody DocumentType documentType) {
         if (documentTypeService.existsByName(documentType.getName())) {
             return ResponseEntity
@@ -46,6 +50,7 @@ public class DocumentTypeController {
     }
     
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<?> updateDocumentType(@PathVariable Long id, @RequestBody DocumentType documentTypeDetails) {
         Optional<DocumentType> documentTypeOptional = documentTypeService.getDocumentTypeById(id);
         
@@ -70,6 +75,7 @@ public class DocumentTypeController {
     }
     
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<Void> deleteDocumentType(@PathVariable Long id) {
         Optional<DocumentType> documentTypeOptional = documentTypeService.getDocumentTypeById(id);
         
