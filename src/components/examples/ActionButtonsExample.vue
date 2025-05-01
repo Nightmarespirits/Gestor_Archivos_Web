@@ -65,7 +65,16 @@
         >
           Configuración avanzada
         </PermissionButton>
+
         
+        <PermissionButton 
+          :permissions="['ROLE_MANAGE']"
+          color="deep-purple" 
+          prepend-icon="mdi-cog"
+          @click="onAdvancedSettingsClick"
+        >
+          Gestion de roles
+        </PermissionButton>
         <!-- Ejemplo con múltiples permisos (necesita uno cualquiera de la lista) -->
         <PermissionButton 
           :permissions="['DOCUMENT_CREATE', 'DOCUMENT_UPDATE']"

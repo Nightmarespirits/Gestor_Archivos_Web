@@ -134,11 +134,6 @@ function hasPermission(permission) {
   return permissionStore.hasPermission(permission);
 }
 
-// Verificar si el usuario tiene cualquiera de los permisos listados
-function hasAnyPermission(permissions) {
-  return permissionStore.hasAnyPermission(permissions);
-}
-
 // Verificar si el usuario tiene acceso de nivel administrativo
 const hasAdminAccess = computed(() => {
   // Verificar si el usuario tiene un rol administrativo (ADMIN o SUPERADMIN)

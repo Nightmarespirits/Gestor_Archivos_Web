@@ -21,7 +21,7 @@ export function createAuthGuard(router, piniaInstance) {
 
     // Si la ruta requiere autenticación y el usuario no está autenticado
     if (to.meta.requiresAuth && !isAuthenticated.value) {
-      return next({ name: 'Login', query: { redirect: to.fullPath } });
+      return next({ name: 'Login' });
     }
 
     // Si el usuario está autenticado y trata de acceder a la página de login

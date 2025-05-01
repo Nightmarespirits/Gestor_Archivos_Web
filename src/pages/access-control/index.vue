@@ -49,24 +49,24 @@
             >
               <template v-slot:item.actions="{ item }">
                 <PermissionButton
-                  :permissions="['PERMISSION_UPDATE']"
-                  icon="mdi-pencil"
-                  variant="text"
+                  :permissions="['ROLE_MANAGE']"
+                  prependIcon="mdi-pencil"
+                  iconButton="true"
                   color="primary"
+                  variant="plain"
                   @click="openEditDialog(item)"
                   :disabled="permissionsStore.loading"
-                  size="small"
                   tooltip="Editar permiso"
                 />
                 
                 <PermissionButton
-                  :permissions="['PERMISSION_DELETE']"
-                  icon="mdi-delete"
-                  variant="text"
+                  :permissions="['ROLE_MANAGE']"
+                  prependIcon="mdi-delete"
+                  iconButton="true"
+                  variant="plain"
                   color="error"
                   @click="confirmDeletePermission(item)"
                   :disabled="permissionsStore.loading"
-                  size="small"
                   tooltip="Eliminar permiso"
                 />
               </template>
@@ -99,16 +99,16 @@
                     >
                       <template v-slot:append>
                         <PermissionButton 
-                          :permissions="['ROLE_UPDATE']"
+                          :roles="['SUPERADMIN']"
                           icon="mdi-pencil" 
                           variant="text" 
                           color="primary" 
                           size="small"
                           @click.stop="openEditRoleDialog(role)"
-                          :disabled="rolesStore.loading"
+                          
                         />
                         <PermissionButton 
-                          :permissions="['ROLE_DELETE']"
+                          :roles="['SUPERADMIN']"
                           icon="mdi-delete" 
                           variant="text" 
                           color="error" 
@@ -121,7 +121,7 @@
                     
                     <div class="pa-2">
                       <PermissionButton 
-                        :permissions="['ROLE_CREATE']"
+                        :roles="['SUPERADMIN']"
                         color="primary" 
                         block 
                         prepend-icon="mdi-account-multiple-plus" 
@@ -179,7 +179,7 @@
                     ></v-autocomplete>
                     
                     <PermissionButton 
-                      :permissions="['ROLE_UPDATE']"
+                      :roles="['SUPERADMIN']"
                       color="primary" 
                       block
                       :disabled="!selectedPermissionIds.length || rolesStore.loading" 

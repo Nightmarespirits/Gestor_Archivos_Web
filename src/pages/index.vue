@@ -62,24 +62,20 @@
           <v-card-text>
             <v-row>
               <v-col cols="6">
-                <v-btn 
-                  block 
+                <PermissionButton
+                  :permissions="['DOCUMENT_CREATE']"
+                  prependIcon="mdi-magnify"
+                  :iconButton="true"
                   color="primary"
-                  prepend-icon="mdi-magnify"
-                  variant="outlined"
-                  :to="{ path: '/search-documents' }"
+                  @click="navigateToCreate('/search-documents')"
                   class="mb-3"
-                >
-                  Buscar
-                </v-btn>
+                />
               </v-col>
               <v-col cols="6">
                 <PermissionButton
                   :permissions="['DOCUMENT_CREATE']"
-                  block 
+                  prependIcon="mdi-plus"
                   color="success"
-                  prepend-icon="mdi-plus"
-                  variant="outlined"
                   @click="navigateToCreate('/documents/create')"
                   class="mb-3"
                 >
@@ -89,10 +85,8 @@
               <v-col cols="6">
                 <PermissionButton
                   :permissions="['USER_CREATE']"
-                  block 
+                  prependIcon="mdi-account-plus"
                   color="info"
-                  prepend-icon="mdi-account-plus"
-                  variant="outlined"
                   @click="navigateToCreate('/users/create')"
                   class="mb-3"
                 >
@@ -102,15 +96,12 @@
               <v-col cols="6">
                 <PermissionButton
                   :permissions="['ACTIVITY_LOG_VIEW']"
-                  block 
+                  prependIcon="mdi-history"
+                  :iconButton="true"
                   color="warning"
-                  prepend-icon="mdi-history"
-                  variant="outlined"
                   @click="navigateToCreate('/activity-log')"
                   class="mb-3"
-                >
-                  Historial
-                </PermissionButton>
+                />
               </v-col>
             </v-row>
           </v-card-text>
@@ -125,13 +116,11 @@
             <v-spacer></v-spacer>
             <PermissionButton
               :permissions="['DOCUMENT_VIEW']"
-              variant="text" 
-              size="small" 
-              @click="navigateToCreate('/documents')" 
+              prependIcon="mdi-eye"
+              :iconButton="true"
               color="primary"
-            >
-              Ver todos
-            </PermissionButton>
+              @click="navigateToCreate('/documents')"
+            />
           </v-card-title>
           <div v-if="loadingDocuments" class="d-flex justify-center align-center pa-4">
             <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -172,13 +161,11 @@
             <v-spacer></v-spacer>
             <PermissionButton
               :permissions="['ACTIVITY_LOG_VIEW']"
-              variant="text" 
-              size="small" 
-              @click="navigateToCreate('/activity-logs')" 
-              color="primary"
-            >
-              Ver historial completo
-            </PermissionButton>
+              prependIcon="mdi-history"
+              :iconButton="true"
+              color="warning"
+              @click="navigateToCreate('/activity-logs')"
+            />
           </v-card-title>
           <v-data-table
             :headers="activityHeaders"
@@ -206,12 +193,11 @@
               <div class="text-center pt-2 pb-2">
                 <PermissionButton
                   :permissions="['ACTIVITY_LOG_VIEW']"
-                  variant="text"
-                  size="small"
+                  prependIcon="mdi-history"
+                  :iconButton="true"
+                  color="warning"
                   @click="navigateToCreate('/activity-logs')"
-                >
-                  Ver más actividades
-                </PermissionButton>
+                />
               </div>
             </template>
           </v-data-table>
@@ -259,14 +245,6 @@ const activityStats = ref({
 const recentActivityLogs = ref([]);
 const recentDocuments = ref([]);
 
-// Verifica si el usuario es administrador
-const hasAdminAccess = computed(() => {
-  const permissions = userPermissionsStore.permissions;
-  // Solo usar esto para mantener compatibilidad temporal con partes que aún usan hasAdminAccess
-  return permissions.includes('USER_MANAGE') || 
-         permissions.includes('DOCUMENT_MANAGE') || 
-         permissions.includes('ACTIVITY_LOG_VIEW');
-});
 
 // Encabezados para la tabla de actividades
 const activityHeaders = [

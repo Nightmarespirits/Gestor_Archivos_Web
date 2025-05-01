@@ -102,13 +102,6 @@
               <template v-slot:item.user="{ item }">
                 {{ item.user.username }}
               </template>
-              <template v-slot:loading>
-                <v-skeleton-loader
-                  v-for="n in 5"
-                  :key="n"
-                  type="list-item-avatar-three-line"
-                ></v-skeleton-loader>
-              </template>
             </v-data-table>
 
             <!-- Paginación -->
@@ -189,7 +182,6 @@ const headers = [
   { title: 'ID', align: 'start', key: 'id' },
   { title: 'Usuario', key: 'user' },
   { title: 'Tipo de Acción', key: 'actionType' },
-  { title: 'Descripción', key: 'description' },
   { title: 'Fecha y Hora', key: 'timestamp' },
   { title: 'Dirección IP', key: 'ipAddress' }
 ];
@@ -270,7 +262,8 @@ watch(() => store.error, (newError) => {
 // Carga inicial de datos
 onMounted(async () => {
   try {
-    await store.fetchLogs();
+     await store.fetchLogs();
+     console.log(JSON.stringify(store.logs, null, 3))
   } catch (error) {
     showError.value = true;
   }

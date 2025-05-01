@@ -77,34 +77,32 @@
           <template v-slot:item.actions="{ item }">
             <PermissionButton
               :permissions="['DOCUMENT_READ']"
-              icon="mdi-eye"
-              variant="text"
               color="info"
               @click="viewDocument(item)"
               :disabled="documentsStore.loading"
-              size="small"
               :tooltip="'Ver documento'"
+              prependIcon="mdi-eye"
+              :iconButton="true"
+              variant="plain"
             />
             
             <PermissionButton
               :permissions="['FILE_DOWNLOAD']"
-              icon="mdi-download"
-              variant="text"
+              prependIcon="mdi-download"
+              variant="plain"
               color="success"
               @click="downloadDocument(item)"
               :disabled="documentsStore.loading"
-              size="small"
               :tooltip="'Descargar documento'"
             />
             
             <PermissionButton
               :permissions="['DOCUMENT_UPDATE']"
-              icon="mdi-pencil"
-              variant="text"
+              prependIcon="mdi-pencil"
+              variant="plain"
               color="primary"
               @click="navigateToEditDocument(item)"
               :disabled="documentsStore.loading"
-              size="small"
               :tooltip="'Editar documento'"
             />
           </template>
@@ -183,8 +181,7 @@ function viewDocument(document) {
 // Descargar documento
 async function downloadDocument(document) {
   try {
-    const downloadUrl = documentsStore.getDocumentDownloadUrl(document.id);
-    window.open(downloadUrl, '_blank');
+    await documentsStore.downloadDocument(document.id);
   } catch (error) {
     showSnackbar(`Error al descargar documento: ${error.message}`, 'error');
   }

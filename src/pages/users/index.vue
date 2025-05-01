@@ -8,7 +8,7 @@
         <PermissionButton 
           :permissions="['USER_CREATE']"
           color="primary" 
-          prepend-icon="mdi-account-plus" 
+          prependIcon="mdi-account-plus" 
           @click="openCreateDialog"
         >
           Nuevo Usuario
@@ -67,24 +67,24 @@
           <template v-slot:item.actions="{ item }">
             <PermissionButton
               :permissions="['USER_UPDATE']"
-              icon="mdi-pencil"
-              variant="text"
+              prependIcon="mdi-pencil"
+              :iconButton="true"
               color="primary"
               @click="navigateToEdit(item)"
               :disabled="usersStore.loading"
-              size="small"
-              :tooltip="'Editar usuario'"
+              tooltip="Editar"
+              variant="plain"
             />
             
             <PermissionButton
               :permissions="['USER_UPDATE']"
-              :icon="item.status ? 'mdi-account-cancel' : 'mdi-account-check'"
-              variant="text"
+              :prependIcon="item.status ? 'mdi-account-cancel' : 'mdi-account-check'"
+              :iconButton="true"
               :color="item.status ? 'error' : 'success'"
               @click="toggleUserStatus(item)"
               :disabled="usersStore.loading"
-              size="small"
               :tooltip="item.status ? 'Desactivar' : 'Activar'"
+              variant="plain"
             />
           </template>
         </v-data-table>
@@ -371,41 +371,7 @@ function openCreateDialog() {
 }
 
 function navigateToEdit(user) {
-  // Obtener el rol del usuario
-  const userRoleObj = authStore.user?.role;
-  console.log('Rol del usuario:', userRoleObj);
-  
-  // Extraer el nombre del rol, considerando diferentes estructuras posibles
-  let userRole = '';
-  if (typeof userRoleObj === 'string') {
-    userRole = userRoleObj;
-  } else if (userRoleObj && typeof userRoleObj === 'object') {
-    userRole = userRoleObj.name || userRoleObj.roleName || '';
-  }
-  
-  // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
-  const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
-  
-  // Verificar que el usuario tiene permisos para editar usuarios
-  if (normalizedUserRole === 'ADMIN' || normalizedUserRole === 'ADMINISTRADOR') {
-    console.log('Redirigiendo a pantalla de edición de usuario...');
-    router.push(`/users/${user.id}/edit`);
-  } else {
-    console.warn('Usuario intenta editar un usuario sin tener permisos de ADMIN');
-    showSnackbar('No tienes permisos para editar usuarios', 'error');
-  }
-}
-
-function openEditDialog(user) {
-  editedUser.value = {
-    id: user.id,
-    username: user.username,
-    fullName: user.fullName,
-    email: user.email,
-    status: user.status,
-    roleId: user.role.id
-  };
-  editDialog.value = true;
+  router.push(`/users/${user.id}/edit`);
 }
 
 async function createUser() {

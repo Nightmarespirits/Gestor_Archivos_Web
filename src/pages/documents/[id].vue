@@ -84,7 +84,7 @@
                         <v-icon color="primary">mdi-tag-outline</v-icon>
                       </template>
                       <v-list-item-title>Tipo de documento</v-list-item-title>
-                      <v-list-item-subtitle>{{ document.type ? document.type.name : 'Sin tipo' }}</v-list-item-subtitle>
+                      <v-list-item-subtitle>{{ document.documentType ? document.documentType : 'Sin tipo' }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
                       <template v-slot:prepend>
@@ -103,7 +103,7 @@
                         <v-icon color="primary">mdi-account</v-icon>
                       </template>
                       <v-list-item-title>Autor</v-list-item-title>
-                      <v-list-item-subtitle>{{ document.author ? document.author.username : 'Desconocido' }}</v-list-item-subtitle>
+                      <v-list-item-subtitle>{{ document.authorName ? document.authorName : 'Desconocido' }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
                       <template v-slot:prepend>
@@ -112,7 +112,7 @@
                       <v-list-item-title>Etiquetas</v-list-item-title>
                       <v-list-item-subtitle>
                         <div class="d-flex flex-wrap gap-1 mt-1">
-                          <v-chip v-for="tag in document.tags" :key="tag.id" size="small" color="secondary" class="mr-1 mb-1">{{ tag.name }}</v-chip>
+                          <v-chip v-for="tag in document.tags" size="small" color="secondary" class="mr-1 mb-1">{{ tag }}</v-chip>
                           <span v-if="!document.tags || document.tags.length === 0">Sin etiquetas</span>
                         </div>
                       </v-list-item-subtitle>
@@ -310,11 +310,6 @@ const isImage = computed(() => {
   return imageFormats.includes(document.value.format.toLowerCase());
 });
 
-const getDocumentDownloadUrl = computed(() => {
-  if (!document.value) return '';
-  return `${import.meta.env.VITE_BASE_URL}/documents/download/${document.value.id}`;
-});
-
 const getDocumentPreviewUrl = computed(() => {
   if (!document.value) return '';
   if (isPDF.value || isImage.value) {
@@ -325,8 +320,6 @@ const getDocumentPreviewUrl = computed(() => {
 
 const metadata = computed(() => document.value?.metadata || null);
 
-const permissions = userPermissionsStore.permissions;
-
 onMounted(async () => {
   await loadDocument();
 });
@@ -335,6 +328,7 @@ async function loadDocument() {
   try {
     loading.value = true;
     document.value = await documentsStore.fetchDocumentById(documentId.value);
+    console.log("Documentos valor: -------------",document.value);
   } catch (error) {
     showError('Error al cargar el documento: ' + error.message);
     document.value = null;

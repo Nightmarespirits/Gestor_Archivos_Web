@@ -90,7 +90,7 @@
                     prepend-icon="mdi-file-upload-outline"
                     @change="handleFileChange"
                   ></v-file-input>
-                  
+                  <!-- previzualizacion del archivo -->
                   <v-alert
                     v-if="formData.file"
                     type="info"
@@ -125,6 +125,7 @@
                   type="submit"
                   :loading="loading"
                   :disabled="loading"
+                  class="ml-2"
                 >
                   Guardar Documento
                 </PermissionButton>
@@ -158,12 +159,12 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
-import { useUserPermissionsStore } from '@/store/userPermissions';
+import { useAuthStore } from '@/store/auth';
 import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Stores y router
 const documentsStore = useDocumentsStore();
-const userPermissionsStore = useUserPermissionsStore();
+const authStore = useAuthStore();
 const router = useRouter();
 
 // Referencias
@@ -201,9 +202,9 @@ onMounted(async () => {
     // Cargar etiquetas disponibles
     availableTags.value = await documentsStore.fetchTags();
     
-    // Establecer el autor actual
-    if (userPermissionsStore.user && userPermissionsStore.user.id) {
-      formData.value.authorId = userPermissionsStore.user.id;
+    // Establecer el autor actual usando authStore
+    if (authStore.user && authStore.user.id) {
+      formData.value.authorId = authStore.user.id;
     }
     
   } catch (error) {
@@ -278,7 +279,7 @@ function resetForm() {
     type: null,
     tags: [],
     file: null,
-    authorId: userPermissionsStore.user ? userPermissionsStore.user.id : null
+    authorId: authStore.user ? authStore.user.id : null
   };
   
   if (form.value) {

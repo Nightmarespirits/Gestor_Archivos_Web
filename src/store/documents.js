@@ -66,10 +66,20 @@ export const useDocumentsStore = defineStore('documents', () => {
 
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
       
-      const data = await response.json();
-      documents.value = data;
+      const responseText = await response.text();
+      console.log('Raw API Response:', responseText);
+      
+      try {
+        const data = JSON.parse(responseText);
+        documents.value = data;
+      } catch (jsonError) {
+        console.error('JSON Parse Error:', jsonError);
+        console.error('Invalid JSON Response:', responseText);
+        throw new Error('Error al procesar la respuesta del servidor: Formato inválido');
+      }
     } catch (err) {
       error.value = err.message;
+      console.error('fetchDocuments Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -239,7 +249,7 @@ export const useDocumentsStore = defineStore('documents', () => {
       }
       
       const headers = getAuthHeaders(false);
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/documents/${id}/download`, { 
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/documents/download/${id}`, { 
         method: 'GET',
         headers
       });

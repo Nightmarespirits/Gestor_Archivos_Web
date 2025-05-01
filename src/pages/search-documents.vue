@@ -127,13 +127,14 @@
         <v-card>
           <v-card-title class="d-flex justify-space-between align-center">
             <span>Resultados ({{ filteredDocuments.length }})</span>
-            <v-btn
-              color="success"
-              prepend-icon="mdi-plus"
+            <PermissionButton 
+              :permissions="['DOCUMENT_CREATE']"
+              color="primary" 
+              prepend-icon="mdi-file-plus" 
               @click="navigateToCreateDocument"
             >
               Nuevo Documento
-            </v-btn>
+            </PermissionButton>
           </v-card-title>
           
           <v-card-text>
@@ -183,50 +184,34 @@
               
               <!-- Columna de acciones -->
               <template v-slot:item.actions="{ item }">
-                <v-tooltip text="Ver documento" location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      icon
-                      variant="text"
-                      color="info"
-                      v-bind="props"
-                      @click="viewDocumentDetails(item.id)"
-                      :disabled="loading"
-                    >
-                      <v-icon>mdi-eye</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
-                
-                <v-tooltip text="Descargar documento" location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      icon
-                      variant="text"
-                      color="success"
-                      v-bind="props"
-                      @click="downloadDocument(item.id)"
-                      :disabled="loading"
-                    >
-                      <v-icon>mdi-download</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
-                
-                <v-tooltip text="Editar documento" location="top">
-                  <template v-slot:activator="{ props }">
-                    <v-btn
-                      icon
-                      variant="text"
-                      color="primary"
-                      v-bind="props"
-                      @click="editDocument(item.id)"
-                      :disabled="loading"
-                    >
-                      <v-icon>mdi-pencil</v-icon>
-                    </v-btn>
-                  </template>
-                </v-tooltip>
+                <PermissionButton
+                    :permissions="['DOCUMENT_READ']"
+                    color="info"
+                    @click="viewDocumentDetails(item.id)"
+                    :disabled="loading"
+                    :tooltip="'Ver documento'"
+                    prependIcon="mdi-eye"
+                    :iconButton="true"
+                    variant="plain"
+                  />
+                  <PermissionButton
+                    :permissions="['FILE_DOWNLOAD']"
+                    prependIcon="mdi-download"
+                    variant="plain"
+                    color="success"
+                    @click="downloadDocument(item.id)"
+                    :disabled="loading"
+                    :tooltip="'Descargar documento'"
+                  />
+                  <PermissionButton
+                    :permissions="['DOCUMENT_UPDATE']"
+                    prependIcon="mdi-pencil"
+                    variant="plain"
+                    color="primary"
+                    @click="editDocument(item.id)"
+                    :disabled="loading"
+                    :tooltip="'Editar documento'"
+                  />
               </template>
             </v-data-table>
           </v-card-text>
@@ -281,15 +266,14 @@ const snackbar = ref({
 const headers = [
   { title: 'ID', key: 'id', align: 'start', sortable: true },
   { title: 'Título', key: 'title', align: 'start', sortable: true, maxWidth: 200 },
-  { title: 'Tipo', key: 'type', align: 'center', sortable: true },
+  { title: 'Tipo', key: 'documentType', align: 'center', sortable: true },
   { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
-  { title: 'Autor', key: 'author.username', align: 'center', sortable: true },
+  { title: 'Autor', key: 'authorName', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
 // Computed
 const filteredDocuments = computed(() => {
-  console.log("Cargando documentos...");
   let result = [...documents.value];
   // Filtrar por título
   if (searchTitle.value.trim()) {
@@ -375,7 +359,10 @@ watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor], () =>
 async function fetchDocuments() {
   try {
     loading.value = true;
-    documents.value = await documentsStore.getDocuments();
+     
+    await documentsStore.fetchDocuments();
+    documents.value = documentsStore.documents;
+    console.log('Documentos cargados:', JSON.stringify(documents.value, null, 2));
   } catch (error) {
     showError('Error al cargar documentos: ' + error.message);
   } finally {
@@ -447,12 +434,7 @@ function navigateToCreateDocument() {
 
 async function downloadDocument(id) {
   try {
-    const downloadUrl = documentsStore.getDocumentDownloadUrl(id);
-    const response = await fetch(downloadUrl);
-    if (!response.ok) {
-      throw new Error(`Error al descargar: ${response.statusText}`);
-    }
-    window.open(downloadUrl, '_blank');
+    await documentsStore.downloadDocument(id);
   } catch (error) {
     showError('Error al descargar el documento: ' + error.message);
   }

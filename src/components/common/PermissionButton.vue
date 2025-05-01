@@ -4,13 +4,14 @@
       :color="color"
       :variant="variant"
       :size="size"
-      :icon="icon"
       :disabled="disabled"
-      @click="handleClick"
       :class="buttonClass"
+      :icon="iconButton"
+      :type="type"
+      @click="handleClick"
     >
       <v-icon v-if="prependIcon" :icon="prependIcon" class="mr-1"></v-icon>
-      <slot>{{ text }}</slot>
+      <slot v-if="!iconButton">{{ text }}</slot>
     </v-btn>
   </PermissionWrapper>
 </template>
@@ -33,7 +34,6 @@ const props = defineProps({
     type: [String, Array],
     default: () => []
   },
-  
   // Propiedades del botón
   text: {
     type: String,
@@ -51,13 +51,13 @@ const props = defineProps({
     type: String,
     default: 'default'
   },
-  icon: {
-    type: String,
-    default: null
-  },
   prependIcon: {
     type: String,
     default: null
+  },
+  iconButton: {
+    type: Boolean,
+    default: false
   },
   disabled: {
     type: Boolean,
@@ -66,6 +66,10 @@ const props = defineProps({
   buttonClass: {
     type: String,
     default: ''
+  },
+  type: {
+    type: String,
+    default: 'button'
   }
 });
 
