@@ -32,6 +32,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials) {
     try {
       console.log('Auth store: Intentando login con credenciales:', credentials.username);
+      console.log('Auth store: URL base:', API_BASE_URL);
+      console.log('Auth store: URL completa:', `${API_BASE_URL}/auth/login`);
+      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -40,24 +43,26 @@ export const useAuthStore = defineStore('auth', () => {
         body: JSON.stringify(credentials),
       });
 
+      console.log('Auth store: Respuesta recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
         let errorMessage = `Error ${response.status}: ${response.statusText}`;
         try {
-          // Intenta obtener un mensaje de error más específico si la respuesta es JSON
           const contentType = response.headers.get('content-type');
           if (contentType && contentType.includes('application/json')) {
             const errorData = await response.json();
-            // Busca un campo 'message' o similar, ajusta según tu API
             errorMessage = errorData.message || errorData.error || JSON.stringify(errorData);
           } else {
-            // Si no es JSON, intenta leer como texto
             const textError = await response.text();
             if (textError) {
               errorMessage = textError;
             }
           }
         } catch (e) {
-          // Si falla el parseo JSON o text(), usa el mensaje genérico
           console.error('Could not parse error response:', e);
         }
         throw new Error(errorMessage);
