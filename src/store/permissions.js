@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityLogsStore } from './activityLogs';
-
-// Define la URL base de la API
-const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+import { api } from '@/services/api';
 
 export const usePermissionsStore = defineStore('permissions', () => {
   const permissions = ref([]);
@@ -12,23 +10,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
   const error = ref(null);
   const activityLogsStore = useActivityLogsStore();
 
-  // Obtener token de autenticación del localStorage
-  const getAuthToken = () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      console.warn('No se encontró token de autenticación');
-    }
-    return token;
-  };
-
-  // Función para crear headers de autenticación
-  const getAuthHeaders = () => {
-    const token = getAuthToken();
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    };
-  };
+  // No necesitamos estas funciones ya que usaremos el servicio api.js
 
   // Obtener todos los permisos
   async function fetchPermissions() {
@@ -36,17 +18,8 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      console.log('Obteniendo permisos desde:', `${API_BASE_URL}/permissions`);
-      const response = await fetch(`${API_BASE_URL}/permissions`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      console.log('Obteniendo permisos');
+      const data = await api.get('/permissions', { debug: true });
       permissions.value = data;
     } catch (err) {
       console.error('Error al obtener permisos:', err);
@@ -62,17 +35,8 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      console.log('Obteniendo tipos de permisos desde:', `${API_BASE_URL}/permissions/types`);
-      const response = await fetch(`${API_BASE_URL}/permissions/types`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      console.log('Obteniendo tipos de permisos');
+      const data = await api.get('/permissions/types');
       permissionTypes.value = data;
     } catch (err) {
       console.error('Error al obtener tipos de permisos:', err);
@@ -88,34 +52,9 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      console.log(`Obteniendo permiso con ID ${permissionId} desde: ${API_BASE_URL}/permissions/${permissionId}`);
-      
-      const response = await fetch(`${API_BASE_URL}/permissions/${permissionId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            if (errorData && errorData.message) {
-              errorMessage = errorData.message;
-            }
-          } catch (e) {
-            console.error('Error al parsear respuesta JSON de error:', e);
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const permissionData = await response.json();
+      console.log(`Obteniendo permiso con ID ${permissionId}`);
+      const permissionData = await api.get(`/permissions/${permissionId}`, { debug: true });
       console.log('Datos de permiso recibidos:', permissionData);
-      
       return permissionData;
     } catch (err) {
       console.error(`Error al obtener permiso con ID ${permissionId}:`, err);
@@ -132,18 +71,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/permissions`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(permissionData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-
-      const newPermission = await response.json();
+      const newPermission = await api.post('/permissions', permissionData);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -168,49 +96,11 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      console.log(`Actualizando permiso con ID ${permissionId} en ${API_BASE_URL}/permissions/${permissionId}`, permissionData);
+      console.log(`Actualizando permiso con ID ${permissionId}`, permissionData);
       
-      const response = await fetch(`${API_BASE_URL}/permissions/${permissionId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(permissionData),
+      const updatedPermission = await api.put(`/permissions/${permissionId}`, permissionData, {
+        debug: true
       });
-
-      console.log('Respuesta de actualización:', response.status, response.statusText);
-      
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        try {
-          if (contentType && contentType.includes('application/json')) {
-            const responseText = await response.text();
-            console.log('Texto de respuesta de error:', responseText);
-            
-            if (responseText && responseText.trim()) {
-              try {
-                const errorData = JSON.parse(responseText);
-                if (errorData && errorData.message) {
-                  errorMessage = errorData.message;
-                } else {
-                  errorMessage = JSON.stringify(errorData);
-                }
-              } catch (jsonErr) {
-                errorMessage = responseText;
-                console.error('Error al parsear JSON de error:', jsonErr);
-              }
-            }
-          } else {
-            errorMessage = await response.text() || errorMessage;
-          }
-        } catch (textErr) {
-          console.error('Error al leer la respuesta de error:', textErr);
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const updatedPermission = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -235,14 +125,7 @@ export const usePermissionsStore = defineStore('permissions', () => {
     error.value = null;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/permissions/${permissionId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      await api.delete(`/permissions/${permissionId}`);
 
       // Registrar la actividad
       await activityLogsStore.createActivityLog(

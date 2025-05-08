@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useActivityLogsStore } from './activityLogs';
-import { fetchApi } from '@/utils/apiDebug';
-
-const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+import { api, apiService, API_BASE_URL } from '@/services/api';
 
 export const useDocumentsStore = defineStore('documents', () => {
   const documents = ref([]);
@@ -14,17 +12,9 @@ export const useDocumentsStore = defineStore('documents', () => {
   const tags = ref([]);
   const activityLogsStore = useActivityLogsStore();
 
-  // Helpers
-  const getAuthHeaders = (includeContentType = true) => {
-    const headers = {
-      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-    };
-    
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-    
-    return headers;
+  // Helper para obtener la URL de descarga de documentos
+  const getDocumentDownloadUrl = (id) => {
+    return `${API_BASE_URL}/documents/download/${id}`;
   };
 
   // Getters
@@ -52,31 +42,12 @@ export const useDocumentsStore = defineStore('documents', () => {
     return tags.value;
   }
 
-  function getDocumentDownloadUrl(id) {
-    return `${API_BASE_URL}/documents/download/${id}`;
-  }
-
   // Actions
   async function fetchDocuments() {
     try {
       loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const responseText = await response.text();
-      console.log('Raw API Response:', responseText);
-      
-      try {
-        const data = JSON.parse(responseText);
-        documents.value = data;
-      } catch (jsonError) {
-        console.error('JSON Parse Error:', jsonError);
-        console.error('Invalid JSON Response:', responseText);
-        throw new Error('Error al procesar la respuesta del servidor: Formato inválido');
-      }
+      const data = await api.get('/documents', { debug: true });
+      documents.value = data;
     } catch (err) {
       error.value = err.message;
       console.error('fetchDocuments Error:', err);
@@ -89,13 +60,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocumentById(id) {
     try {
       loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const data = await response.json();
+      const data = await api.get(`/documents/${id}`);
       currentDocument.value = data;
       return data;
     } catch (err) {
@@ -126,15 +91,9 @@ export const useDocumentsStore = defineStore('documents', () => {
         });
       }
 
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        method: 'POST',
-        headers: getAuthHeaders(false),
-        body: formData
+      const newDocument = await api.post('/documents', formData, {
+        isFormData: true
       });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const newDocument = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -183,15 +142,14 @@ export const useDocumentsStore = defineStore('documents', () => {
       for (let [k, v] of formData.entries()) {
         console.log(`[updateDocument] FormData: ${k} =`, v);
       }
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(false),
-        body: formData
+      
+      const updatedDocument = await api.put(`/documents/${id}`, formData, {
+        isFormData: true,
+        debug: true
       });
-      console.log('[updateDocument] Respuesta HTTP:', response);
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      const updatedDocument = await response.json();
+      
       console.log('[updateDocument] Documento actualizado recibido:', updatedDocument);
+      
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
         'UPDATE_DOCUMENT',
@@ -213,12 +171,7 @@ export const useDocumentsStore = defineStore('documents', () => {
       loading.value = true;
       const document = await fetchDocumentById(id);
       
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      await api.delete(`/documents/${id}`);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -248,10 +201,10 @@ export const useDocumentsStore = defineStore('documents', () => {
         documentData = currentDocument.value;
       }
       
-      const headers = getAuthHeaders(false);
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/documents/download/${id}`, { 
+      // Usar fetch directamente para obtener el blob
+      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, { 
         method: 'GET',
-        headers
+        headers: apiService.getAuthHeaders(false)
       });
 
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
@@ -286,7 +239,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocumentTypes() {
     try {
       loading.value = true;
-      const response = await fetchApi('/document-types');
+      const response = await api.get('/document-types');
       documentTypes.value = response;
       return response;
     } catch (err) {
@@ -300,7 +253,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchTags() {
     try {
       loading.value = true;
-      const response = await fetchApi('/tags');
+      const response = await api.get('/tags');
       tags.value = response;
       return response;
     } catch (err) {

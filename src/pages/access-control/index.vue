@@ -51,7 +51,7 @@
                 <PermissionButton
                   :permissions="['ROLE_MANAGE']"
                   prependIcon="mdi-pencil"
-                  iconButton="true"
+                  :iconButton="true"
                   color="primary"
                   variant="plain"
                   @click="openEditDialog(item)"
@@ -62,7 +62,7 @@
                 <PermissionButton
                   :permissions="['ROLE_MANAGE']"
                   prependIcon="mdi-delete"
-                  iconButton="true"
+                  :iconButton="true"
                   variant="plain"
                   color="error"
                   @click="confirmDeletePermission(item)"

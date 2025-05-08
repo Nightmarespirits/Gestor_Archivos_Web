@@ -239,6 +239,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Stores
 const documentsStore = useDocumentsStore();

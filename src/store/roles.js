@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useActivityLogsStore } from './activityLogs';
-
-// Define la URL base de la API
-const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+import { api } from '@/services/api';
 
 export const useRolesStore = defineStore('roles', () => {
   const roles = ref([]);
@@ -12,23 +10,7 @@ export const useRolesStore = defineStore('roles', () => {
   const error = ref(null);
   const activityLogsStore = useActivityLogsStore();
 
-  // Obtener token de autenticación del localStorage
-  const getAuthToken = () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
-      console.warn('No se encontró token de autenticación');
-    }
-    return token;
-  };
-
-  // Función para crear headers de autenticación
-  const getAuthHeaders = () => {
-    const token = getAuthToken();
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-      'Content-Type': 'application/json',
-    };
-  };
+  // No necesitamos estas funciones ya que usaremos el servicio api.js
 
   // Obtener todos los roles
   async function fetchRoles() {
@@ -36,17 +18,8 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      console.log('Obteniendo roles desde:', `${API_BASE_URL}/roles`);
-      const response = await fetch(`${API_BASE_URL}/roles`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      console.log('Obteniendo roles');
+      const data = await api.get('/roles', { debug: true });
       roles.value = data;
     } catch (err) {
       console.error('Error al obtener roles:', err);
@@ -62,17 +35,8 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      console.log('Obteniendo tipos de roles desde:', `${API_BASE_URL}/roles/types`);
-      const response = await fetch(`${API_BASE_URL}/roles/types`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      console.log('Obteniendo tipos de roles');
+      const data = await api.get('/roles/types');
       roleTypes.value = data;
     } catch (err) {
       console.error('Error al obtener tipos de roles:', err);
@@ -88,34 +52,9 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      console.log(`Obteniendo rol con ID ${roleId} desde: ${API_BASE_URL}/roles/${roleId}`);
-      
-      const response = await fetch(`${API_BASE_URL}/roles/${roleId}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            if (errorData && errorData.message) {
-              errorMessage = errorData.message;
-            }
-          } catch (e) {
-            console.error('Error al parsear respuesta JSON de error:', e);
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const roleData = await response.json();
+      console.log(`Obteniendo rol con ID ${roleId}`);
+      const roleData = await api.get(`/roles/${roleId}`, { debug: true });
       console.log('Datos de rol recibidos:', roleData);
-      
       return roleData;
     } catch (err) {
       console.error(`Error al obtener rol con ID ${roleId}:`, err);
@@ -132,18 +71,7 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/roles`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(roleData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
-      }
-
-      const newRole = await response.json();
+      const newRole = await api.post('/roles', roleData);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -168,47 +96,11 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      console.log(`Actualizando rol con ID ${roleId} en ${API_BASE_URL}/roles/${roleId}`, roleData);
+      console.log(`Actualizando rol con ID ${roleId}`, roleData);
       
-      const response = await fetch(`${API_BASE_URL}/roles/${roleId}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(roleData),
+      const updatedRole = await api.put(`/roles/${roleId}`, roleData, {
+        debug: true
       });
-
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        try {
-          if (contentType && contentType.includes('application/json')) {
-            const responseText = await response.text();
-            console.log('Texto de respuesta de error:', responseText);
-            
-            if (responseText && responseText.trim()) {
-              try {
-                const errorData = JSON.parse(responseText);
-                if (errorData && errorData.message) {
-                  errorMessage = errorData.message;
-                } else {
-                  errorMessage = JSON.stringify(errorData);
-                }
-              } catch (jsonErr) {
-                errorMessage = responseText;
-                console.error('Error al parsear JSON de error:', jsonErr);
-              }
-            }
-          } else {
-            errorMessage = await response.text() || errorMessage;
-          }
-        } catch (textErr) {
-          console.error('Error al leer la respuesta de error:', textErr);
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const updatedRole = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -233,14 +125,7 @@ export const useRolesStore = defineStore('roles', () => {
     error.value = null;
     
     try {
-      const response = await fetch(`${API_BASE_URL}/roles/${roleId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      await api.delete(`/roles/${roleId}`);
 
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -267,31 +152,9 @@ export const useRolesStore = defineStore('roles', () => {
     try {
       console.log(`Añadiendo permisos al rol con ID ${roleId}`, permissionIds);
       
-      const response = await fetch(`${API_BASE_URL}/roles/${roleId}/permissions`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ permissionIds }),
+      const updatedRole = await api.post(`/roles/${roleId}/permissions`, { permissionIds }, {
+        debug: true
       });
-
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            if (errorData && errorData.message) {
-              errorMessage = errorData.message;
-            }
-          } catch (e) {
-            console.error('Error al parsear respuesta JSON de error:', e);
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const updatedRole = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -318,31 +181,10 @@ export const useRolesStore = defineStore('roles', () => {
     try {
       console.log(`Eliminando permisos del rol con ID ${roleId}`, permissionIds);
       
-      const response = await fetch(`${API_BASE_URL}/roles/${roleId}/permissions`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ permissionIds }),
+      const updatedRole = await api.delete(`/roles/${roleId}/permissions`, {
+        body: { permissionIds },
+        debug: true
       });
-
-      if (!response.ok) {
-        let errorMessage = `Error ${response.status}: ${response.statusText}`;
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const errorData = await response.json();
-            if (errorData && errorData.message) {
-              errorMessage = errorData.message;
-            }
-          } catch (e) {
-            console.error('Error al parsear respuesta JSON de error:', e);
-          }
-        }
-        
-        throw new Error(errorMessage);
-      }
-
-      const updatedRole = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(

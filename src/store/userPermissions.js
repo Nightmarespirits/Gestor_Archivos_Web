@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { useAuthStore } from './auth';
+import { api } from '@/services/api'; // Importar el servicio API centralizado
 
 /**
  * Store para gestionar los permisos del usuario actual.
@@ -20,9 +21,6 @@ export const useUserPermissionsStore = defineStore('userPermissions', () => {
   
   // Store de autenticación
   const authStore = useAuthStore();
-  
-  // URL base de la API
-  const API_BASE_URL = import.meta.env.VITE_BASE_URL;
   
   // Getters
   
@@ -55,85 +53,87 @@ export const useUserPermissionsStore = defineStore('userPermissions', () => {
    * @returns {boolean} - true si el usuario tiene todos los permisos, false en caso contrario
    */
   const hasAllPermissions = (requiredPermissions) => {
-    if (!requiredPermissions || requiredPermissions.length === 0) return true;
-    return requiredPermissions.every(p => hasPermission(p));
+    // Si el array está vacío, devolver true
+    if (!requiredPermissions || !requiredPermissions.length) return true;
+    
+    // Comprobar todos los permisos
+    return requiredPermissions.every(permName => hasPermission(permName));
   };
   
   /**
-   * Comprueba si el usuario tiene alguno de los permisos especificados
-   * @param {Array<string>} permissionList - Array de nombres de permisos a verificar
+   * Comprueba si el usuario tiene al menos uno de los permisos especificados
+   * @param {Array<string>} requiredPermissions - Array de nombres de permisos a verificar
    * @returns {boolean} - true si el usuario tiene al menos uno de los permisos, false en caso contrario
    */
-  const hasAnyPermission = (permissionList) => {
-    if (!permissionList || permissionList.length === 0) return false;
-    return permissionList.some(p => hasPermission(p));
+  const hasAnyPermission = (requiredPermissions) => {
+    // Si el array está vacío, devolver true
+    if (!requiredPermissions || !requiredPermissions.length) return true;
+    
+    // Comprobar si tiene al menos un permiso
+    return requiredPermissions.some(permName => hasPermission(permName));
   };
   
   /**
-   * Determina si el usuario actual es administrador
+   * Verifica si el usuario es administrador basado en el rol
    */
   const isAdmin = computed(() => {
-    return roleName.value === 'ADMIN';
+    const role = authStore.user?.role;
+    if (!role) return false;
+    
+    const roleName = typeof role === 'string' ? role : role.name;
+    return roleName === 'ADMIN' || roleName === 'ROLE_ADMIN';
   });
   
   // Acciones
   
   /**
-   * Carga los permisos del usuario basados en su rol
-   * @returns {Promise<void>}
+   * Carga los permisos del usuario actual según su rol
+   * @returns {Promise<Array>} - Array de permisos
    */
   async function loadUserPermissions() {
-    if (!authStore.isAuthenticated) {
-      permissions.value = [];
-      roleId.value = null;
-      roleName.value = null;
-      initialized.value = true;
-      return;
-    }
-    
-    loading.value = true;
-    error.value = null;
-    
     try {
-      // Obtener el rol del usuario desde el store de autenticación
-      const userRole = authStore.user?.role;
+      loading.value = true;
+      const user = authStore.user;
       
-      if (!userRole) {
-        permissions.value = [];
-        roleId.value = null;
-        roleName.value = null;
-        initialized.value = true;
-        loading.value = false;
-        return;
+      if (!user || !user.role) {
+        error.value = 'No hay información de usuario o rol';
+        return [];
       }
       
-      // Normalizar el objeto de rol (puede venir en diferentes formatos)
-      let roleObj = userRole;
+      // Obtener información del rol
+      let userRole = user.role;
+      
+      // Normalizar estructura del rol
+      let roleToUse;
       if (typeof userRole === 'string') {
-        roleObj = { name: userRole };
+        roleName.value = userRole;
+        // Buscar el ID del rol por su nombre
+        const roleFetched = await getRoleByName(userRole);
+        roleToUse = roleFetched.id;
+      } else if (userRole && typeof userRole === 'object') {
+        roleName.value = userRole.name || userRole.roleName;
+        roleToUse = userRole.id;
       }
       
-      // Guardar información del rol
-      roleId.value = roleObj.id;
-      roleName.value = roleObj.name || roleObj.roleName;
-      
-      // Si no tenemos el ID del rol, intentamos obtenerlo por nombre
-      if (roleName.value && !roleId.value) {
-        await fetchRoleByName(roleName.value);
+      if (!roleToUse) {
+        error.value = 'No se pudo determinar el ID del rol';
+        return [];
       }
       
-      // Si tenemos el ID del rol, obtenemos sus permisos
-      if (roleId.value) {
-        await fetchRolePermissions(roleId.value);
-      } else {
-        permissions.value = [];
-      }
+      roleId.value = roleToUse;
       
+      // Obtener permisos del rol directamente usando el ID
+      const roleWithPermissions = await api.get(`/roles/${roleToUse}`);
+      
+      // Guardar permisos y marcar como inicializado
+      permissions.value = roleWithPermissions.permissions || [];
       initialized.value = true;
+      
+      return permissions.value;
     } catch (err) {
       console.error('Error al cargar permisos del usuario:', err);
       error.value = err.message;
-      permissions.value = [];
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -141,68 +141,27 @@ export const useUserPermissionsStore = defineStore('userPermissions', () => {
   
   /**
    * Obtiene un rol por su nombre
-   * @param {string} name - Nombre del rol a buscar
-   * @returns {Promise<object>} - Datos del rol
+   * @param {string} name - Nombre del rol
+   * @returns {Promise<Object>} - Datos del rol
    */
-  async function fetchRoleByName(name) {
+  async function getRoleByName(name) {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/roles/name/${name}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
+      const roles = await api.get('/roles', {
+        params: { name: name }
       });
       
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      // Buscar el rol por nombre
+      const role = Array.isArray(roles) ? 
+        roles.find(r => r.name === name) : null;
+      
+      if (!role) {
+        throw new Error(`Rol "${name}" no encontrado`);
       }
       
-      const roleData = await response.json();
-      roleId.value = roleData.id;
-      return roleData;
+      roleId.value = role.id;
+      return role;
     } catch (err) {
       console.error(`Error al obtener rol por nombre (${name}):`, err);
-      throw err;
-    }
-  }
-  
-  /**
-   * Obtiene los permisos de un rol específico
-   * @param {number} id - ID del rol
-   * @returns {Promise<Array>} - Array de permisos
-   */
-  async function fetchRolePermissions(id) {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        throw new Error('No se encontró token de autenticación');
-      }
-      
-      const response = await fetch(`${API_BASE_URL}/roles/${id}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      
-      console.log('Response----------------:', response);
-      
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
-      
-      const roleData = await response.json();
-      permissions.value = roleData.permissions || [];
-      return permissions.value;
-    } catch (err) {
-      console.error(`Error al obtener permisos del rol (ID: ${id}):`, err);
       throw err;
     }
   }
@@ -239,7 +198,6 @@ export const useUserPermissionsStore = defineStore('userPermissions', () => {
     
     // Acciones
     loadUserPermissions,
-    fetchRolePermissions,
     reset
   };
 });

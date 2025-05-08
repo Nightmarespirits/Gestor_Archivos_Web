@@ -1,55 +1,5 @@
 <template>
   <v-container fluid>
-    <!-- Encabezado del Dashboard -->
-    <v-row>
-      <v-col cols="12">
-        <h1 class="text-h4 font-weight-bold mb-2">Dashboard</h1>
-        <p class="text-subtitle-1 text-grey">Bienvenido al sistema de gestión de archivos IESTPFFAA</p>
-      </v-col>
-    </v-row>
-
-    <!-- Tarjetas de estadísticas -->
-    <v-row>
-      <v-col cols="12" md="3">
-        <v-card elevation="1" class="rounded-lg" height="100%">
-          <v-card-text class="d-flex flex-column justify-center align-center py-6">
-            <v-icon size="54" color="primary" class="mb-2">mdi-file-document-multiple</v-icon>
-            <div class="text-h4 font-weight-bold">{{ documentStats.total }}</div>
-            <div class="text-subtitle-1 text-grey">Documentos</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" md="3">
-        <v-card elevation="1" class="rounded-lg" height="100%">
-          <v-card-text class="d-flex flex-column justify-center align-center py-6">
-            <v-icon size="54" color="success" class="mb-2">mdi-account-group</v-icon>
-            <div class="text-h4 font-weight-bold">{{ userStats.total }}</div>
-            <div class="text-subtitle-1 text-grey">Usuarios</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" md="3">
-        <v-card elevation="1" class="rounded-lg" height="100%">
-          <v-card-text class="d-flex flex-column justify-center align-center py-6">
-            <v-icon size="54" color="warning" class="mb-2">mdi-tag-multiple</v-icon>
-            <div class="text-h4 font-weight-bold">{{ documentStats.tags }}</div>
-            <div class="text-subtitle-1 text-grey">Etiquetas</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-      
-      <v-col cols="12" md="3">
-        <v-card elevation="1" class="rounded-lg" height="100%">
-          <v-card-text class="d-flex flex-column justify-center align-center py-6">
-            <v-icon size="54" color="info" class="mb-2">mdi-clock-time-four</v-icon>
-            <div class="text-h4 font-weight-bold">{{ activityStats.today }}</div>
-            <div class="text-subtitle-1 text-grey">Actividades Hoy</div>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
 
     <!-- Acciones rápidas y últimos documentos -->
     <v-row class="mt-4">
@@ -249,7 +199,6 @@ const recentDocuments = ref([]);
 // Encabezados para la tabla de actividades
 const activityHeaders = [
   { title: 'Acción', key: 'actionType', align: 'center', width: '150' },
-  { title: 'Descripción', key: 'description', align: 'start' },
   { title: 'Usuario', key: 'user', align: 'center', width: '150' },
   { title: 'Fecha', key: 'timestamp', align: 'center', width: '170' }
 ];
@@ -258,8 +207,7 @@ const activityHeaders = [
 onMounted(async () => {
   await Promise.all([
     loadRecentActivity(),
-    loadRecentDocuments(),
-    loadStatistics()
+    loadRecentDocuments()
   ]);
 });
 
@@ -267,8 +215,8 @@ onMounted(async () => {
 async function loadRecentActivity() {
   try {
     loadingLogs.value = true;
-    const response = await activityLogsStore.fetchLogs({ page: 0, size: 10 });
-    recentActivityLogs.value = response.content || [];
+    const response = await activityLogsStore.fetchLogs();
+    recentActivityLogs.value = response || [];
     
     // Calcular actividades de hoy
     const today = new Date().toISOString().split('T')[0];
@@ -276,7 +224,7 @@ async function loadRecentActivity() {
       log.timestamp && log.timestamp.startsWith(today)
     ).length;
     
-    activityStats.value.total = response.totalElements || 0;
+    activityStats.value.total = response.length || 0;
   } catch (error) {
     console.error('Error al cargar actividades recientes:', error);
   } finally {
