@@ -94,6 +94,7 @@
               :items="filteredLogs"
               :loading="store.loading"
               :items-per-page="itemsPerPage"
+              :sort-by="[{ key: 'timestamp', order: 'desc' }]"
               class="elevation-1"
             >
               <template v-slot:item.timestamp="{ item }">
@@ -182,7 +183,11 @@ const headers = [
   { title: 'ID', align: 'start', key: 'id' },
   { title: 'Usuario', key: 'user' },
   { title: 'Tipo de Acción', key: 'actionType' },
-  { title: 'Fecha y Hora', key: 'timestamp' },
+  { 
+    title: 'Fecha y Hora', 
+    key: 'timestamp',
+    sortable: true
+  },
   { title: 'Dirección IP', key: 'ipAddress' }
 ];
 

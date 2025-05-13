@@ -82,7 +82,6 @@ async function handleLogin() {
     return;
   }
   loading.value = true;
-  error.value = null; // Limpia errores anteriores
   
   try {
     await authStore.login({ 

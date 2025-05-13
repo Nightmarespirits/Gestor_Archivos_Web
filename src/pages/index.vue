@@ -1,65 +1,79 @@
 <template>
   <v-container fluid>
 
-    <!-- Acciones rápidas y últimos documentos -->
-    <v-row class="mt-4">
-      <v-col cols="12" md="4">
+    <!-- Acciones rápidas -->
+    <v-row class="mb-4">
+      <v-col cols="12">
         <v-card elevation="1" class="rounded-lg">
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-2">mdi-lightning-bolt</v-icon>
             Acciones Rápidas
           </v-card-title>
           <v-card-text>
-            <v-row>
-              <v-col cols="6">
+            <v-row justify="center" align="center">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <PermissionButton
                   :permissions="['DOCUMENT_CREATE']"
                   prependIcon="mdi-magnify"
-                  :iconButton="true"
                   color="primary"
+                  variant="elevated"
+                  size="large"
                   @click="navigateToCreate('/search-documents')"
-                  class="mb-3"
-                />
+                  class="action-btn"
+                >
+                  Buscar Documentos
+                </PermissionButton>
               </v-col>
-              <v-col cols="6">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <PermissionButton
                   :permissions="['DOCUMENT_CREATE']"
                   prependIcon="mdi-plus"
                   color="success"
+                  variant="elevated"
+                  size="large"
                   @click="navigateToCreate('/documents/create')"
-                  class="mb-3"
+                  class="action-btn"
                 >
-                  Nuevo Doc.
+                  Nuevo Documento
                 </PermissionButton>
               </v-col>
-              <v-col cols="6">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <PermissionButton
                   :permissions="['USER_CREATE']"
                   prependIcon="mdi-account-plus"
                   color="info"
+                  variant="elevated"
+                  size="large"
                   @click="navigateToCreate('/users/create')"
-                  class="mb-3"
+                  class="action-btn"
                 >
                   Nuevo Usuario
                 </PermissionButton>
               </v-col>
-              <v-col cols="6">
+              <v-col cols="12" sm="6" md="3" class="text-center">
                 <PermissionButton
                   :permissions="['ACTIVITY_LOG_VIEW']"
                   prependIcon="mdi-history"
-                  :iconButton="true"
                   color="warning"
-                  @click="navigateToCreate('/activity-log')"
-                  class="mb-3"
-                />
+                  variant="elevated"
+                  size="large"
+                  @click="navigateToCreate('/activity-logs')"
+                  class="action-btn"
+                >
+                  Ver Actividades
+                </PermissionButton>
               </v-col>
             </v-row>
           </v-card-text>
         </v-card>
       </v-col>
-      
-      <v-col cols="12" md="8">
-        <v-card elevation="1" class="rounded-lg">
+    </v-row>
+    
+    <!-- Últimos documentos y actividades -->
+    <v-row>
+      <!-- Documentos recientes -->
+      <v-col cols="12" md="6">
+        <v-card elevation="1" class="rounded-lg" height="100%">
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-2">mdi-file-document-multiple</v-icon>
             Documentos Recientes
@@ -99,12 +113,10 @@
           </v-list>
         </v-card>
       </v-col>
-    </v-row>
 
-    <!-- Actividades recientes -->
-    <v-row class="mt-4">
-      <v-col cols="12">
-        <v-card elevation="1" class="rounded-lg">
+      <!-- Actividades recientes -->
+      <v-col cols="12" md="6">
+        <v-card elevation="1" class="rounded-lg" height="100%">
           <v-card-title class="d-flex align-center">
             <v-icon class="mr-2">mdi-history</v-icon>
             Actividades Recientes
@@ -121,6 +133,7 @@
             :headers="activityHeaders"
             :items="recentActivityLogs"
             :items-per-page="5"
+            :sort-by="[{ key: 'timestamp', order: 'desc' }]"
             class="elevation-0"
             :loading="loadingLogs"
           >
@@ -200,7 +213,13 @@ const recentDocuments = ref([]);
 const activityHeaders = [
   { title: 'Acción', key: 'actionType', align: 'center', width: '150' },
   { title: 'Usuario', key: 'user', align: 'center', width: '150' },
-  { title: 'Fecha', key: 'timestamp', align: 'center', width: '170' }
+  { 
+    title: 'Fecha', 
+    key: 'timestamp', 
+    align: 'center', 
+    width: '170',
+    sortable: true
+  }
 ];
 
 // Cargar datos del dashboard
@@ -236,7 +255,16 @@ async function loadRecentDocuments() {
   try {
     loadingDocuments.value = true;
     await documentsStore.fetchDocuments();
-    recentDocuments.value = documentsStore.getDocuments().slice(0, 5);
+    
+    // Ordenar documentos por fecha de subida en orden descendente (más recientes primero)
+    const sortedDocuments = [...documentsStore.getDocuments()].sort((a, b) => {
+      const dateA = new Date(a.uploadDate || a.createdAt || 0);
+      const dateB = new Date(b.uploadDate || b.createdAt || 0);
+      return dateB - dateA; // Orden descendente
+    });
+    
+    // Tomar los 5 más recientes
+    recentDocuments.value = sortedDocuments.slice(0, 5);
     documentStats.value.total = documentsStore.getDocuments().length;
     
     // Calcular número de etiquetas únicas
@@ -318,5 +346,15 @@ function navigateToCreate(path) {
 .v-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
+}
+.action-btn {
+  width: 100%;
+  height: 50px;
+  transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 </style>
