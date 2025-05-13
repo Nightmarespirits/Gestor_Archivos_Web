@@ -82,13 +82,19 @@ async function handleLogin() {
     return;
   }
   loading.value = true;
+  error.value = null; // Limpia errores anteriores
+  
   try {
     await authStore.login({ 
       username: username.value, 
       password: password.value 
     });
+    
+    // La redirección se maneja dentro del store
   } catch (err) {
-    // Aquí puedes mostrar un error general si lo deseas
+    error.value = err?.message || 'Ocurrió un error inesperado.';
+    
+    // Asegurarse de que el botón de login se habilite nuevamente
     setTimeout(() => {
       loading.value = false;
     }, 500);

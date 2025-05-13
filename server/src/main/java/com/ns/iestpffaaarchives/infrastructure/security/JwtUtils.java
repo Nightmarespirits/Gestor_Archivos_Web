@@ -7,26 +7,29 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 
 @Component
 public class JwtUtils {
 
-    // TODO: Move secret key to application properties and make it more secure
-    private final Key jwtSecret = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    private Key jwtSecret;
+    private final long jwtExpirationMs;
 
-    // TODO: Move expiration time to application properties
-    private final long jwtExpirationMs = 86400000; // 24 hours
+    public JwtUtils(@Value("${jwt.expiration}") long jwtExpirationMs) {
+        this.jwtExpirationMs = jwtExpirationMs;
+        // Generamos una clave segura para HS512 en lugar de usar la del properties
+        this.jwtSecret = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    }
 
     public String generateJwtToken(Authentication authentication) {
-
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal(); // Cast principal
-
+        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
                 .setIssuedAt(new Date())

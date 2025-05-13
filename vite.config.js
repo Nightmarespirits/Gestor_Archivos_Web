@@ -2,8 +2,6 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vuetify from 'vite-plugin-vuetify';
 import Layouts from 'vite-plugin-vue-layouts';
-import AutoImport from 'unplugin-auto-import/vite';
-import Components from 'unplugin-vue-components/vite';
 import path from 'path';
 
 // https://vitejs.dev/config/
@@ -23,30 +21,6 @@ export default defineConfig({
       styles: {
         configFile: 'src/styles/settings.scss',
       }
-    }),
-
-    // Docs: https://github.com/unplugin/unplugin-vue-components
-    Components({
-      dirs: ['src/components'], // Directorio de componentes auto-importables
-      dts: 'src/components.d.ts', // Opcional: para type safety
-      // Vuetify Resolver si es necesario, aunque vite-plugin-vuetify ya lo maneja
-    }),
-
-    // Docs: https://github.com/unplugin/unplugin-auto-import
-    AutoImport({
-      imports: [
-        'vue',
-        {
-          'vue-router': ['useRouter', 'useRoute', 'useLink'],
-        },
-        'pinia', // Importación automática para Pinia
-      ],
-      dts: 'src/auto-imports.d.ts', // Opcional: para type safety
-      dirs: [
-        'src/composables',
-        'src/store',
-      ],
-      vueTemplate: true,
     }),
   ],
   define: { 
@@ -72,4 +46,14 @@ export default defineConfig({
   server: {
     port: 3000, // Asegúrate de que el puerto sea 3000
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern'
+      },
+      sass: {
+        api: 'modern'
+      }
+    }
+  }
 });

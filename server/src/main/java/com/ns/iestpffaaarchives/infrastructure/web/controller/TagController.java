@@ -5,6 +5,7 @@ import com.ns.iestpffaaarchives.application.service.TagService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,12 +23,14 @@ public class TagController {
     }
     
     @GetMapping
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<Tag>> getAllTags() {
         List<Tag> tags = tagService.getAllTags();
         return ResponseEntity.ok(tags);
     }
     
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<Tag> getTagById(@PathVariable Long id) {
         Optional<Tag> tag = tagService.getTagById(id);
         return tag.map(ResponseEntity::ok)
@@ -35,12 +38,14 @@ public class TagController {
     }
     
     @GetMapping("/search")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
     public ResponseEntity<List<Tag>> searchTagsByName(@RequestParam String name) {
         List<Tag> tags = tagService.searchTagsByName(name);
         return ResponseEntity.ok(tags);
     }
     
     @PostMapping
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<?> createTag(@RequestBody Tag tag) {
         // Verificar si ya existe una etiqueta con el mismo nombre
         if (tagService.existsByName(tag.getName())) {
@@ -54,6 +59,7 @@ public class TagController {
     }
     
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<?> updateTag(@PathVariable Long id, @RequestBody Tag tagDetails) {
         Optional<Tag> tagOptional = tagService.getTagById(id);
         
@@ -81,6 +87,7 @@ public class TagController {
     }
     
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('DOCUMENT_UPDATE')")
     public ResponseEntity<Void> deleteTag(@PathVariable Long id) {
         Optional<Tag> tagOptional = tagService.getTagById(id);
         

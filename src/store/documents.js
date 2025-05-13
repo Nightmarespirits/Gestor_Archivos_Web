@@ -1,9 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useActivityLogsStore } from './activityLogs';
-import { fetchApi } from '@/utils/apiDebug';
-
-const API_BASE_URL = import.meta.env.VITE_BASE_URL;
+import { api, apiService, API_BASE_URL } from '@/services/api';
 
 export const useDocumentsStore = defineStore('documents', () => {
   const documents = ref([]);
@@ -13,18 +11,11 @@ export const useDocumentsStore = defineStore('documents', () => {
   const documentTypes = ref([]);
   const tags = ref([]);
   const activityLogsStore = useActivityLogsStore();
+  const previewCache = new Map();
 
-  // Helpers
-  const getAuthHeaders = (includeContentType = true) => {
-    const headers = {
-      'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-    };
-    
-    if (includeContentType) {
-      headers['Content-Type'] = 'application/json';
-    }
-    
-    return headers;
+  // Helper para obtener la URL de descarga de documentos
+  const getDocumentDownloadUrl = (id) => {
+    return `${API_BASE_URL}/documents/download/${id}`;
   };
 
   // Getters
@@ -56,16 +47,11 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocuments() {
     try {
       loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const data = await response.json();
+      const data = await api.get('/documents', { debug: true });
       documents.value = data;
     } catch (err) {
       error.value = err.message;
+      console.error('fetchDocuments Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -75,13 +61,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocumentById(id) {
     try {
       loading.value = true;
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const data = await response.json();
+      const data = await api.get(`/documents/${id}`);
       currentDocument.value = data;
       return data;
     } catch (err) {
@@ -112,15 +92,9 @@ export const useDocumentsStore = defineStore('documents', () => {
         });
       }
 
-      const response = await fetch(`${API_BASE_URL}/documents`, {
-        method: 'POST',
-        headers: getAuthHeaders(false),
-        body: formData
+      const newDocument = await api.post('/documents', formData, {
+        isFormData: true
       });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      const newDocument = await response.json();
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -169,15 +143,14 @@ export const useDocumentsStore = defineStore('documents', () => {
       for (let [k, v] of formData.entries()) {
         console.log(`[updateDocument] FormData: ${k} =`, v);
       }
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(false),
-        body: formData
+      
+      const updatedDocument = await api.put(`/documents/${id}`, formData, {
+        isFormData: true,
+        debug: true
       });
-      console.log('[updateDocument] Respuesta HTTP:', response);
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      const updatedDocument = await response.json();
+      
       console.log('[updateDocument] Documento actualizado recibido:', updatedDocument);
+      
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
         'UPDATE_DOCUMENT',
@@ -199,12 +172,7 @@ export const useDocumentsStore = defineStore('documents', () => {
       loading.value = true;
       const document = await fetchDocumentById(id);
       
-      const response = await fetch(`${API_BASE_URL}/documents/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+      await api.delete(`/documents/${id}`);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -226,26 +194,35 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function downloadDocument(id) {
     try {
       loading.value = true;
-      const document = await fetchDocumentById(id);
       
-      const response = await fetch(`${API_BASE_URL}/documents/${id}/download`, {
-        headers: getAuthHeaders()
+      // Primero obtener los datos del documento si no están disponibles
+      let documentData = currentDocument.value;
+      if (!documentData || documentData.id !== id) {
+        await fetchDocumentById(id);
+        documentData = currentDocument.value;
+      }
+      
+      // Usar fetch directamente para obtener el blob
+      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, { 
+        method: 'GET',
+        headers: apiService.getAuthHeaders(false)
       });
 
       if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
       
-      // Registrar la actividad
+      // Registrar la actividad de descarga
       await activityLogsStore.createActivityLog(
         'DOWNLOAD_DOCUMENT',
-        `Documento "${document.title}" descargado`,
+        `Documento "${documentData.title}" descargado`,
         id
       );
-
+      
+      // Procesar la descarga del archivo
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = document.fileName || 'documento';
+      a.download = documentData.title || 'documento';
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -260,10 +237,49 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
+  // Función para obtener la URL de previsualización del documento
+  async function getFilePreview(id) {
+    try {
+      loading.value = true;
+
+      if (previewCache.has(id)) {
+        return previewCache.get(id);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, {
+        method: 'GET',
+        headers: apiService.getAuthHeaders(false)
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+      const blob = await response.blob();
+      const mimeType = blob.type || response.headers.get('content-type') || 'application/octet-stream';
+      const url = URL.createObjectURL(blob);
+
+      const previewData = { url, mimeType };
+      previewCache.set(id, previewData);
+      return previewData;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  function revokePreviewUrl(id) {
+    const cached = previewCache.get(id);
+    if (cached) {
+      URL.revokeObjectURL(cached.url);
+      previewCache.delete(id);
+    }
+  }
+
   async function fetchDocumentTypes() {
     try {
       loading.value = true;
-      const response = await fetchApi('/document-types');
+      const response = await api.get('/document-types');
       documentTypes.value = response;
       return response;
     } catch (err) {
@@ -277,7 +293,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchTags() {
     try {
       loading.value = true;
-      const response = await fetchApi('/tags');
+      const response = await api.get('/tags');
       tags.value = response;
       return response;
     } catch (err) {
@@ -292,10 +308,10 @@ export const useDocumentsStore = defineStore('documents', () => {
     // State
     documents,
     currentDocument,
-    loading,
-    error,
     documentTypes,
     tags,
+    loading,
+    error,
 
     // Getters
     getDocuments,
@@ -304,6 +320,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     getError,
     getDocumentTypes,
     getTags,
+    getDocumentDownloadUrl,
 
     // Actions
     fetchDocuments,
@@ -312,6 +329,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     updateDocument,
     deleteDocument,
     downloadDocument,
+    getFilePreview,
+    revokePreviewUrl,
     fetchDocumentTypes,
     fetchTags
   };

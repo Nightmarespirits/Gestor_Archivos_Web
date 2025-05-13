@@ -12,9 +12,15 @@
             <v-spacer></v-spacer>
             <v-dialog v-model="tagDialog" max-width="500px">
               <template v-slot:activator="{ props }">
-                <v-btn color="primary" v-bind="props" size="small">
-                  <v-icon>mdi-plus</v-icon> Nueva
-                </v-btn>
+                <PermissionButton 
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-plus"
+                  color="primary" 
+                  v-bind="props" 
+                  size="small"
+                >
+                  Nueva
+                </PermissionButton>
               </template>
               <v-card>
                 <v-card-title>
@@ -28,6 +34,12 @@
                       :rules="[v => !!v || 'El nombre es requerido']"
                       required
                     ></v-text-field>
+                    <v-textarea
+                      v-model="editedTag.description"
+                      label="Descripción"
+                      rows="3"
+                      auto-grow
+                    ></v-textarea>
                   </v-form>
                 </v-card-text>
                 <v-card-actions>
@@ -51,33 +63,26 @@
               class="elevation-1"
             >
               <template v-slot:item.actions="{ item }">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      class="mr-2"
-                      color="primary"
-                      size="small"
-                      @click="editItem('tag', item)"
-                    >
-                      mdi-pencil
-                    </v-icon>
-                  </template>
-                  <span>Editar</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      color="error"
-                      size="small"
-                      @click="deleteItem('tag', item)"
-                    >
-                      mdi-delete
-                    </v-icon>
-                  </template>
-                  <span>Eliminar</span>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-pencil"
+                  :iconButton="true"
+                  color="primary"
+                  size="small"
+                  @click="editItem('tag', item)"
+                  tooltip="Editar"
+                  variant="plain"
+                />
+                <PermissionButton
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-delete"
+                  :iconButton="true"
+                  color="error"
+                  size="small"
+                  @click="deleteItem('tag', item)"
+                  tooltip="Eliminar"
+                  variant="plain"
+                />
               </template>
             </v-data-table>
           </v-card-text>
@@ -93,9 +98,15 @@
             <v-spacer></v-spacer>
             <v-dialog v-model="typeDialog" max-width="500px">
               <template v-slot:activator="{ props }">
-                <v-btn color="primary" v-bind="props" size="small">
-                  <v-icon>mdi-plus</v-icon> Nuevo
-                </v-btn>
+                <PermissionButton 
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-plus"
+                  color="primary" 
+                  v-bind="props" 
+                  size="small"
+                >
+                  Nuevo
+                </PermissionButton>
               </template>
               <v-card>
                 <v-card-title>
@@ -147,33 +158,26 @@
                 </v-tooltip>
               </template>
               <template v-slot:item.actions="{ item }">
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      class="mr-2"
-                      color="primary"
-                      size="small"
-                      @click="editItem('type', item)"
-                    >
-                      mdi-pencil
-                    </v-icon>
-                  </template>
-                  <span>Editar</span>
-                </v-tooltip>
-                <v-tooltip bottom>
-                  <template v-slot:activator="{ props }">
-                    <v-icon 
-                      v-bind="props"
-                      color="error"
-                      size="small"
-                      @click="deleteItem('type', item)"
-                    >
-                      mdi-delete
-                    </v-icon>
-                  </template>
-                  <span>Eliminar</span>
-                </v-tooltip>
+                <PermissionButton
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-pencil"
+                  :iconButton="true"
+                  color="primary"
+                  size="small"
+                  @click="editItem('type', item)"
+                  tooltip="Editar"
+                  variant="plain"
+                />
+                <PermissionButton
+                  :permissions="['SYSTEM_CONFIG']"
+                  prependIcon="mdi-delete"
+                  :iconButton="true"
+                  color="error"
+                  size="small"
+                  @click="deleteItem('type', item)"
+                  tooltip="Eliminar"
+                  variant="plain"
+                />
               </template>
             </v-data-table>
           </v-card-text>
@@ -210,6 +214,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Utilidades para API con fetch
 // Obtenemos la URL base desde las variables de entorno
@@ -349,6 +355,7 @@ const itemToDelete = ref({ type: '', item: null });
 const tagHeaders = [
   { title: 'ID', key: 'id', width: '20%' },
   { title: 'Nombre', key: 'name', width: '60%' },
+  { title: 'Descripción', key: 'description', width: '35%' },
   { title: 'Acciones', key: 'actions', width: '20%', sortable: false },
 ];
 
@@ -365,6 +372,9 @@ const snackbar = ref({
   text: '',
   color: 'success',
 });
+
+// Store de permisos
+const userPermissionsStore = useUserPermissionsStore();
 
 // Funciones para los títulos de formularios
 const formTitle = (type) => {

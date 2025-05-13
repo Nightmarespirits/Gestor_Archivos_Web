@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -89,6 +90,7 @@ public class ActivityLogController {
     }
     
     @GetMapping
+    @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
     public ResponseEntity<List<ActivityLog>> getAllActivityLogs() {
         List<ActivityLog> activityLogs = activityLogService.getAllActivityLogs();
         return ResponseEntity.ok(activityLogs);
@@ -103,6 +105,7 @@ public class ActivityLogController {
     }
     
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
     public ResponseEntity<ActivityLog> getActivityLogById(@PathVariable Long id) {
         Optional<ActivityLog> activityLog = activityLogService.getActivityLogById(id);
         return activityLog.map(ResponseEntity::ok)
@@ -145,6 +148,7 @@ public class ActivityLogController {
     }
     
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
     public ResponseEntity<Void> deleteActivityLog(@PathVariable Long id) {
         Optional<ActivityLog> activityLogOptional = activityLogService.getActivityLogById(id);
         

@@ -5,28 +5,35 @@ package com.ns.iestpffaaarchives.domain.enums;
  */
 public enum PermissionEnum {
     // User management permissions
-    USER_CREATE("Create users", "Allows creating new users"),
-    USER_READ("View users", "Allows viewing user information"),
-    USER_UPDATE("Edit users", "Allows editing user information"),
-    USER_DELETE("Delete users", "Allows deleting users"),
+    USER_CREATE("Crear usuarios", "Permite crear nuevos usuarios"),
+    USER_READ("Ver usuarios", "Permite ver información de los usuarios"),
+    USER_UPDATE("Editar usuarios", "Permite editar información de los usuarios"),
+    USER_DELETE("Eliminar usuarios", "Permite eliminar usuarios"),
     
     // Document management permissions
-    DOCUMENT_CREATE("Create documents", "Allows creating new documents"),
-    DOCUMENT_READ("View documents", "Allows viewing documents"),
-    DOCUMENT_UPDATE("Edit documents", "Allows editing documents"),
-    DOCUMENT_DELETE("Delete documents", "Allows deleting documents"),
+    DOCUMENT_CREATE("Crear documentos", "Permite crear nuevos documentos"),
+    DOCUMENT_READ("Ver documentos", "Permite ver documentos"),
+    DOCUMENT_UPDATE("Editar documentos", "Permite editar documentos"),
+    DOCUMENT_DELETE("Eliminar documentos", "Permite eliminar documentos"),
     
     // File management permissions
-    FILE_UPLOAD("Upload files", "Allows uploading files"),
-    FILE_DOWNLOAD("Download files", "Allows downloading files"),
-    FILE_DELETE("Delete files", "Allows deleting files"),
+    FILE_UPLOAD("Subir archivos", "Permite subir archivos"),
+    FILE_DOWNLOAD("Descargar archivos", "Permite descargar archivos"),
+    FILE_DELETE("Eliminar archivos", "Permite eliminar archivos"),
     
     // Archive management permissions
-    ARCHIVE_MANAGE("Manage archives", "Allows managing archive structure"),
+    ARCHIVE_MANAGE("Gestionar archivos históricos", "Permite gestionar la estructura de archivos históricos"),
     
     // System administration permissions
-    ROLE_MANAGE("Manage roles", "Allows managing roles and permissions"),
-    SYSTEM_CONFIG("Configure system", "Allows configuring system settings");
+    ROLE_MANAGE("Gestionar roles", "Permite gestionar roles y permisos"),
+    SYSTEM_CONFIG("Configurar el sistema", "Permite configurar ajustes del sistema"),
+    
+    // Additional suggested permissions
+    AUDIT_LOG_VIEW("Ver auditoría", "Permite ver los registros de auditoría del sistema"),
+    NOTIFICATION_MANAGE("Gestionar notificaciones", "Permite gestionar notificaciones y alertas"),
+    BACKUP_MANAGE("Gestionar respaldos", "Permite gestionar copias de seguridad del sistema"),
+    REPORT_VIEW("Ver reportes", "Permite ver y generar reportes"),
+    API_ACCESS("Acceso a API", "Permite el acceso a endpoints especiales o integraciones");
     
     private final String displayName;
     private final String description;

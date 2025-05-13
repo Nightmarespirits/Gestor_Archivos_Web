@@ -5,13 +5,14 @@
         <h1 class="text-h4">Gestión de Documentos</h1>
       </v-col>
       <v-col cols="4" class="d-flex justify-end">
-        <v-btn 
+        <PermissionButton 
+          :permissions="['DOCUMENT_CREATE']"
           color="primary" 
           prepend-icon="mdi-file-plus" 
           @click="navigateToCreateDocument"
         >
           Nuevo Documento
-        </v-btn>
+        </PermissionButton>
       </v-col>
     </v-row>
 
@@ -74,50 +75,36 @@
           </template>
           
           <template v-slot:item.actions="{ item }">
-            <v-tooltip text="Ver documento" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="info"
-                  v-bind="props"
-                  @click="viewDocument(item)"
-                  :disabled="documentsStore.loading"
-                >
-                  <v-icon>mdi-eye</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <PermissionButton
+              :permissions="['DOCUMENT_READ']"
+              color="info"
+              @click="viewDocument(item)"
+              :disabled="documentsStore.loading"
+              :tooltip="'Ver documento'"
+              prependIcon="mdi-eye"
+              :iconButton="true"
+              variant="plain"
+            />
             
-            <v-tooltip text="Descargar documento" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="success"
-                  v-bind="props"
-                  @click="downloadDocument(item)"
-                  :disabled="documentsStore.loading"
-                >
-                  <v-icon>mdi-download</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <PermissionButton
+              :permissions="['FILE_DOWNLOAD']"
+              prependIcon="mdi-download"
+              variant="plain"
+              color="success"
+              @click="downloadDocument(item)"
+              :disabled="documentsStore.loading"
+              :tooltip="'Descargar documento'"
+            />
             
-            <v-tooltip text="Editar documento" location="top">
-              <template v-slot:activator="{ props }">
-                <v-btn
-                  icon
-                  variant="text"
-                  color="primary"
-                  v-bind="props"
-                  @click="navigateToEditDocument(item)"
-                  :disabled="documentsStore.loading"
-                >
-                  <v-icon>mdi-pencil</v-icon>
-                </v-btn>
-              </template>
-            </v-tooltip>
+            <PermissionButton
+              :permissions="['DOCUMENT_UPDATE']"
+              prependIcon="mdi-pencil"
+              variant="plain"
+              color="primary"
+              @click="navigateToEditDocument(item)"
+              :disabled="documentsStore.loading"
+              :tooltip="'Editar documento'"
+            />
           </template>
         </v-data-table>
       </v-card-text>
@@ -131,9 +118,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useDocumentsStore } from '@/store/documents';
 import { useRouter } from 'vue-router';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Store
 const documentsStore = useDocumentsStore();
@@ -193,8 +181,7 @@ function viewDocument(document) {
 // Descargar documento
 async function downloadDocument(document) {
   try {
-    const downloadUrl = documentsStore.getDocumentDownloadUrl(document.id);
-    window.open(downloadUrl, '_blank');
+    await documentsStore.downloadDocument(document.id);
   } catch (error) {
     showSnackbar(`Error al descargar documento: ${error.message}`, 'error');
   }

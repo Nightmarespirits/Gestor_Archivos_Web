@@ -90,7 +90,7 @@
                     prepend-icon="mdi-file-upload-outline"
                     @change="handleFileChange"
                   ></v-file-input>
-                  
+                  <!-- previzualizacion del archivo -->
                   <v-alert
                     v-if="formData.file"
                     type="info"
@@ -119,14 +119,16 @@
                 >
                   Limpiar
                 </v-btn>
-                <v-btn
+                <PermissionButton
+                  :permissions="['DOCUMENT_CREATE']"
                   color="primary"
                   type="submit"
                   :loading="loading"
                   :disabled="loading"
+                  class="ml-2"
                 >
                   Guardar Documento
-                </v-btn>
+                </PermissionButton>
               </div>
             </v-form>
           </v-card-text>
@@ -158,6 +160,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
 import { useAuthStore } from '@/store/auth';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 // Stores y router
 const documentsStore = useDocumentsStore();
@@ -199,7 +202,7 @@ onMounted(async () => {
     // Cargar etiquetas disponibles
     availableTags.value = await documentsStore.fetchTags();
     
-    // Establecer el autor actual
+    // Establecer el autor actual usando authStore
     if (authStore.user && authStore.user.id) {
       formData.value.authorId = authStore.user.id;
     }

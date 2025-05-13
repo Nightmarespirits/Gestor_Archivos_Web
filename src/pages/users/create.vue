@@ -146,28 +146,6 @@ const snackbar = ref({
 // Verificar permisos y cargar datos al montar el componente
 onMounted(async () => {
   try {
-    // Obtener el rol del usuario
-    const userRoleObj = authStore.user?.role;
-    console.log('Rol del usuario en create.vue:', userRoleObj);
-    
-    // Extraer el nombre del rol, considerando diferentes estructuras posibles
-    let userRole = '';
-    if (typeof userRoleObj === 'string') {
-      userRole = userRoleObj;
-    } else if (userRoleObj && typeof userRoleObj === 'object') {
-      userRole = userRoleObj.name || userRoleObj.roleName || '';
-    }
-    
-    // Normalizar el rol para comparación (convertir a mayúsculas y eliminar prefijos comunes)
-    const normalizedUserRole = userRole.toUpperCase().replace('ROLE_', '');
-    
-    // Verificar que el usuario es administrador
-    if (normalizedUserRole !== 'ADMIN' && normalizedUserRole !== 'ADMINISTRADOR') {
-      showSnackbar('No tienes permisos para acceder a esta página', 'error');
-      router.push('/unauthorized');
-      return;
-    }
-    
     // Cargar roles para el select
     await loadRoles();
   } catch (error) {

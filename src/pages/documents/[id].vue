@@ -14,16 +14,32 @@
               <div class="d-flex align-center">
                 <v-btn variant="text" prepend-icon="mdi-arrow-left" @click="goBack">Volver</v-btn>
                 <v-spacer></v-spacer>
-                <v-btn color="primary" prepend-icon="mdi-download" class="mr-2" @click="downloadDocument">Descargar</v-btn>
-                <v-btn color="warning" prepend-icon="mdi-pencil" class="mr-2" @click="editDocument">Editar</v-btn>
-                <v-btn 
-                  v-if="authStore.user?.role?.name === 'ADMIN'"
+                <PermissionButton 
+                  :permissions="['FILE_DOWNLOAD']"
+                  color="primary" 
+                  prepend-icon="mdi-download" 
+                  class="mr-2" 
+                  @click="downloadDocument"
+                >
+                  Descargar
+                </PermissionButton>
+                <PermissionButton 
+                  :permissions="['DOCUMENT_UPDATE']"
+                  color="warning" 
+                  prepend-icon="mdi-pencil" 
+                  class="mr-2" 
+                  @click="editDocument"
+                >
+                  Editar
+                </PermissionButton>
+                <PermissionButton 
+                  :permissions="['DOCUMENT_DELETE']"
                   color="error" 
                   prepend-icon="mdi-delete" 
                   @click="confirmDeleteDocument"
                 >
                   Eliminar
-                </v-btn>
+                </PermissionButton>
               </div>
             </v-card-text>
           </v-card>
@@ -68,7 +84,7 @@
                         <v-icon color="primary">mdi-tag-outline</v-icon>
                       </template>
                       <v-list-item-title>Tipo de documento</v-list-item-title>
-                      <v-list-item-subtitle>{{ document.type ? document.type.name : 'Sin tipo' }}</v-list-item-subtitle>
+                      <v-list-item-subtitle>{{ document.documentType ? document.documentType : 'Sin tipo' }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
                       <template v-slot:prepend>
@@ -87,7 +103,7 @@
                         <v-icon color="primary">mdi-account</v-icon>
                       </template>
                       <v-list-item-title>Autor</v-list-item-title>
-                      <v-list-item-subtitle>{{ document.author ? document.author.username : 'Desconocido' }}</v-list-item-subtitle>
+                      <v-list-item-subtitle>{{ document.authorName ? document.authorName : 'Desconocido' }}</v-list-item-subtitle>
                     </v-list-item>
                     <v-list-item>
                       <template v-slot:prepend>
@@ -96,7 +112,7 @@
                       <v-list-item-title>Etiquetas</v-list-item-title>
                       <v-list-item-subtitle>
                         <div class="d-flex flex-wrap gap-1 mt-1">
-                          <v-chip v-for="tag in document.tags" :key="tag.id" size="small" color="secondary" class="mr-1 mb-1">{{ tag.name }}</v-chip>
+                          <v-chip v-for="tag in document.tags" size="small" color="secondary" class="mr-1 mb-1">{{ tag }}</v-chip>
                           <span v-if="!document.tags || document.tags.length === 0">Sin etiquetas</span>
                         </div>
                       </v-list-item-subtitle>
@@ -147,18 +163,18 @@
             <v-card-text class="d-flex flex-column align-center justify-center" style="height: calc(100% - 64px);">
               <template v-if="isPDF">
                 <v-img src="@/assets/pdf-preview.png" max-height="200" contain class="mb-4"></v-img>
-                <v-btn color="primary" prepend-icon="mdi-eye" @click="showPreviewDialog = true" class="mr-2">Ver PDF</v-btn>
-                <v-btn color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</v-btn>
+                <PermissionButton :permissions="['DOCUMENT_READ']" color="primary" prepend-icon="mdi-eye" @click="showPreviewDialog = true" class="mr-2">Ver PDF</PermissionButton>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</PermissionButton>
               </template>
               <template v-else-if="isImage">
-                <v-img :src="getDocumentDownloadUrl" max-height="300" contain class="mb-4" @click="showPreviewDialog = true" style="cursor: pointer;"></v-img>
-                <v-btn color="primary" prepend-icon="mdi-fullscreen" @click="showPreviewDialog = true" class="mr-2">Maximizar</v-btn>
-                <v-btn color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</v-btn>
+                <v-img :src="getDocumentPreviewUrl" max-height="300" contain class="mb-4" @click="showPreviewDialog = true" style="cursor: pointer;"></v-img>
+                <PermissionButton :permissions="['DOCUMENT_READ']" color="primary" prepend-icon="mdi-fullscreen" @click="showPreviewDialog = true" class="mr-2">Maximizar</PermissionButton>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="secondary" prepend-icon="mdi-download" @click="downloadDocument">Descargar</PermissionButton>
               </template>
               <template v-else>
                 <v-icon size="100" color="grey lighten-1" class="mb-4">mdi-file-document-outline</v-icon>
                 <div class="text-body-1 text-center">No hay vista previa disponible para este tipo de archivo.</div>
-                <v-btn color="primary" prepend-icon="mdi-download" class="mt-4" @click="downloadDocument">Descargar archivo</v-btn>
+                <PermissionButton :permissions="['FILE_DOWNLOAD']" color="primary" prepend-icon="mdi-download" class="mt-4" @click="downloadDocument">Descargar archivo</PermissionButton>
               </template>
             </v-card-text>
           </v-card>
@@ -209,24 +225,40 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="showPreviewDialog" fullscreen transition="dialog-bottom-transition">
+    <v-dialog v-model="showPreviewDialog" fullscreen @update:modelValue="val => { if (!val) beforeDialogClose(); }">
       <v-card>
-        <v-toolbar dark color="primary">
-          <v-btn icon dark @click="showPreviewDialog = false">
+        <v-toolbar color="primary">
+          <v-btn icon @click="showPreviewDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-          <v-toolbar-title>{{ document?.title || 'Vista previa' }}</v-toolbar-title>
+          <v-toolbar-title>Vista previa: {{ document?.title }}</v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-btn icon dark @click="downloadDocument">
-            <v-icon>mdi-download</v-icon>
+          <v-btn 
+            prepend-icon="mdi-download" 
+            @click="downloadDocument"
+            color="white"
+            variant="text"
+          >
+            Descargar
           </v-btn>
         </v-toolbar>
-        <v-card-text class="pa-0 d-flex justify-center align-center" style="height: calc(100vh - 64px); background-color: #f5f5f5;">
+        <v-card-text class="d-flex justify-center align-center pa-0" style="height: calc(100vh - 64px);">
           <template v-if="isPDF">
-            <iframe :src="getDocumentDownloadUrl" width="100%" height="100%" frameborder="0"></iframe>
+            <iframe 
+              :src="getDocumentPreviewUrl" 
+              width="100%" 
+              height="100%" 
+              style="border: none;"
+              type="application/pdf"
+            ></iframe>
           </template>
           <template v-else-if="isImage">
-            <v-img :src="getDocumentDownloadUrl" max-height="90vh" max-width="90vw" contain class="elevation-2"></v-img>
+            <v-img 
+              :src="getDocumentPreviewUrl" 
+              max-height="90vh" 
+              contain 
+              class="mx-auto"
+            ></v-img>
           </template>
         </v-card-text>
       </v-card>
@@ -244,10 +276,11 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
-import { useAuthStore } from '@/store/auth';
+import { useUserPermissionsStore } from '@/store/userPermissions';
+import PermissionButton from '@/components/common/PermissionButton.vue';
 
 const documentsStore = useDocumentsStore();
-const authStore = useAuthStore();
+const userPermissionsStore = useUserPermissionsStore();
 const route = useRoute();
 const router = useRouter();
 
@@ -263,24 +296,22 @@ const snackbar = ref({
 });
 const adminPassword = ref('');
 const deleteFormValid = ref(false);
+const previewData = ref({ url: '', mimeType: '' });
 
 const documentId = computed(() => route.params.id);
 
 const isPDF = computed(() => {
-  if (!document.value || !document.value.format) return false;
-  return document.value.format.toLowerCase() === 'pdf';
+  if (!document.value) return false;
+  return (document.value.format || '').toLowerCase().includes('pdf');
 });
 
 const isImage = computed(() => {
-  if (!document.value || !document.value.format) return false;
-  const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-  return imageFormats.includes(document.value.format.toLowerCase());
+  if (!document.value) return false;
+  const mime = (document.value.format || '').toLowerCase();
+  return mime.startsWith('image/');
 });
 
-const getDocumentDownloadUrl = computed(() => {
-  if (!document.value) return '';
-  return documentsStore.getDocumentDownloadUrl(document.value.id);
-});
+const getDocumentPreviewUrl = computed(() => previewData.value.url);
 
 const metadata = computed(() => document.value?.metadata || null);
 
@@ -292,6 +323,7 @@ async function loadDocument() {
   try {
     loading.value = true;
     document.value = await documentsStore.fetchDocumentById(documentId.value);
+    previewData.value = await documentsStore.getFilePreview(documentId.value);
   } catch (error) {
     showError('Error al cargar el documento: ' + error.message);
     document.value = null;
@@ -308,8 +340,16 @@ function editDocument() {
   router.push(`/documents/${documentId.value}/edit`);
 }
 
-function downloadDocument() {
-  window.open(getDocumentDownloadUrl.value, '_blank');
+async function downloadDocument() {
+  try {
+    loading.value = true;
+    await documentsStore.downloadDocument(documentId.value);
+    showSuccess('Documento descargado correctamente');
+  } catch (error) {
+    showError('Error al descargar el documento: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
 }
 
 function confirmDeleteDocument() {
@@ -330,6 +370,10 @@ async function deleteDocument() {
   } finally {
     loading.value = false;
   }
+}
+
+function beforeDialogClose() {
+  documentsStore.revokePreviewUrl(documentId.value);
 }
 
 function formatDate(dateString) {

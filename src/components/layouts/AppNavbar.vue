@@ -5,7 +5,7 @@
       <v-icon>{{ rail ? 'mdi-menu-open' : 'mdi-menu' }}</v-icon>
     </v-btn>
 
-    <v-toolbar-title>Archivo IESTPFFAA</v-toolbar-title>
+    <v-toolbar-title>Archivos IESTPFFAA</v-toolbar-title>
 
     <v-spacer></v-spacer>
 
@@ -24,7 +24,13 @@
         @keyup.enter="performSearch"
       ></v-text-field>
     </v-responsive>
-
+    <template v-slot:append>
+      <div class="pa-2">
+        <v-btn block color="secondary" @click="handleLogout" prepend-icon="mdi-logout">
+          Cerrar Sesión
+        </v-btn>
+      </div>
+    </template>
     <v-btn icon @click="toggleTheme">
       <v-icon>{{ theme === 'light' ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
     </v-btn>
@@ -33,6 +39,8 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useAuthStore } from '@/store/auth';
+
 
 const props = defineProps({
   theme: String,
@@ -42,6 +50,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:drawer', 'update:rail', 'toggle-theme']);
+const authStore = useAuthStore();
 
 function toggleDrawer() {
   emit('update:drawer', !props.drawer);
@@ -65,5 +74,9 @@ function performSearch() {
 
 function clearSearch() {
   searchQuery.value = '';
+}
+
+function handleLogout() {
+  authStore.logout();
 }
 </script>
