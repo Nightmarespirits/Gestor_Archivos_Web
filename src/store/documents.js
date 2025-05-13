@@ -11,6 +11,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   const documentTypes = ref([]);
   const tags = ref([]);
   const activityLogsStore = useActivityLogsStore();
+  const previewCache = new Map();
 
   // Helper para obtener la URL de descarga de documentos
   const getDocumentDownloadUrl = (id) => {
@@ -236,6 +237,45 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
+  // Función para obtener la URL de previsualización del documento
+  async function getFilePreview(id) {
+    try {
+      loading.value = true;
+
+      if (previewCache.has(id)) {
+        return previewCache.get(id);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, {
+        method: 'GET',
+        headers: apiService.getAuthHeaders(false)
+      });
+
+      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
+
+      const blob = await response.blob();
+      const mimeType = blob.type || response.headers.get('content-type') || 'application/octet-stream';
+      const url = URL.createObjectURL(blob);
+
+      const previewData = { url, mimeType };
+      previewCache.set(id, previewData);
+      return previewData;
+    } catch (err) {
+      error.value = err.message;
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  function revokePreviewUrl(id) {
+    const cached = previewCache.get(id);
+    if (cached) {
+      URL.revokeObjectURL(cached.url);
+      previewCache.delete(id);
+    }
+  }
+
   async function fetchDocumentTypes() {
     try {
       loading.value = true;
@@ -289,6 +329,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     updateDocument,
     deleteDocument,
     downloadDocument,
+    getFilePreview,
+    revokePreviewUrl,
     fetchDocumentTypes,
     fetchTags
   };

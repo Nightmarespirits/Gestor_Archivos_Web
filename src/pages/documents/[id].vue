@@ -225,7 +225,7 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    <v-dialog v-model="showPreviewDialog" fullscreen>
+    <v-dialog v-model="showPreviewDialog" fullscreen @update:modelValue="val => { if (!val) beforeDialogClose(); }">
       <v-card>
         <v-toolbar color="primary">
           <v-btn icon @click="showPreviewDialog = false">
@@ -296,27 +296,22 @@ const snackbar = ref({
 });
 const adminPassword = ref('');
 const deleteFormValid = ref(false);
+const previewData = ref({ url: '', mimeType: '' });
 
 const documentId = computed(() => route.params.id);
 
 const isPDF = computed(() => {
-  if (!document.value || !document.value.format) return false;
-  return document.value.format.toLowerCase() === 'pdf';
+  if (!document.value) return false;
+  return (document.value.format || '').toLowerCase().includes('pdf');
 });
 
 const isImage = computed(() => {
-  if (!document.value || !document.value.format) return false;
-  const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-  return imageFormats.includes(document.value.format.toLowerCase());
+  if (!document.value) return false;
+  const mime = (document.value.format || '').toLowerCase();
+  return mime.startsWith('image/');
 });
 
-const getDocumentPreviewUrl = computed(() => {
-  if (!document.value) return '';
-  if (isPDF.value || isImage.value) {
-    return `${import.meta.env.VITE_BASE_URL}/documents/download/${document.value.id}`;
-  }
-  return '';
-});
+const getDocumentPreviewUrl = computed(() => previewData.value.url);
 
 const metadata = computed(() => document.value?.metadata || null);
 
@@ -328,7 +323,7 @@ async function loadDocument() {
   try {
     loading.value = true;
     document.value = await documentsStore.fetchDocumentById(documentId.value);
-    console.log("Documentos valor: -------------",document.value);
+    previewData.value = await documentsStore.getFilePreview(documentId.value);
   } catch (error) {
     showError('Error al cargar el documento: ' + error.message);
     document.value = null;
@@ -375,6 +370,10 @@ async function deleteDocument() {
   } finally {
     loading.value = false;
   }
+}
+
+function beforeDialogClose() {
+  documentsStore.revokePreviewUrl(documentId.value);
 }
 
 function formatDate(dateString) {

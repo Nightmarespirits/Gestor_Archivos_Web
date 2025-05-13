@@ -47,7 +47,7 @@
         prepend-icon="mdi-text-box-search-outline" 
         title="Buscar Documentos" 
         value="search_docs" 
-        to="/search-documents">
+        to="/documents/search">
       </v-list-item>
 
       <!-- Gestión Documentos - Visible para roles que pueden crear/editar documentos -->
@@ -83,7 +83,7 @@
         prepend-icon="mdi-history" 
         title="Historial Actividades" 
         value="history" 
-        to="/activity-log">
+        to="/activity-logs">
       </v-list-item>
 
       <!-- Accesos y Controles - Solo para SUPERADMIN (ROLE_MANAGE, SYSTEM_CONFIG) -->
@@ -95,14 +95,6 @@
         to="/access-control">
       </v-list-item>
     </v-list>
-
-    <template v-slot:append>
-      <div class="pa-2" v-if="!rail || isMobile">
-        <v-btn block color="secondary" @click="handleLogout" prepend-icon="mdi-logout">
-          Cerrar Sesión
-        </v-btn>
-      </div>
-    </template>
   </v-navigation-drawer>
 </template>
 

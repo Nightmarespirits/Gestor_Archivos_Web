@@ -15,7 +15,7 @@ public enum RoleEnum {
         PermissionEnum.USER_READ, PermissionEnum.USER_UPDATE, PermissionEnum.USER_DELETE,
         PermissionEnum.DOCUMENT_CREATE, PermissionEnum.DOCUMENT_READ, PermissionEnum.DOCUMENT_UPDATE, PermissionEnum.DOCUMENT_DELETE,
         PermissionEnum.FILE_UPLOAD, PermissionEnum.FILE_DOWNLOAD, PermissionEnum.FILE_DELETE,
-        PermissionEnum.ARCHIVE_MANAGE),
+        PermissionEnum.ARCHIVE_MANAGE, PermissionEnum.AUDIT_LOG_VIEW, PermissionEnum.NOTIFICATION_MANAGE, PermissionEnum.BACKUP_MANAGE),
         
     MANAGER("Gestor", "Puede gestionar documentos y usuarios",
         PermissionEnum.USER_READ, PermissionEnum.USER_UPDATE,
