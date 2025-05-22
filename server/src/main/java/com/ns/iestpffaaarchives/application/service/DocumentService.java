@@ -8,6 +8,9 @@ import com.ns.iestpffaaarchives.domain.repository.DocumentVersionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 // Imports para seguridad
@@ -15,15 +18,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.util.StringUtils;
-import org.springframework.data.jpa.domain.Specification;
 import java.util.stream.Collectors;
+
+import org.springframework.util.StringUtils;
 
 @Service
 public class DocumentService {
@@ -163,6 +168,120 @@ public class DocumentService {
                                doc.getSecurity().getAccessLevel() != null && 
                                permissibleAccessLevels.contains(doc.getSecurity().getAccessLevel()))
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Obtiene documentos paginados aplicando filtros de seguridad por nivel de acceso.
+     * @param pageable Información de paginación y ordenamiento
+     * @return Página de documentos filtrados por nivel de acceso
+     */
+    @Transactional(readOnly = true)
+    public Page<Document> getPaginatedDocuments(Pageable pageable) {
+        Set<String> permissibleAccessLevels = getPermissibleAccessLevels();
+        
+        if (permissibleAccessLevels.isEmpty()) {
+            logger.warn("[getPaginatedDocuments] El usuario no tiene niveles de acceso definidos para ver documentos.");
+            return Page.empty(pageable);
+        }
+        
+        logger.info("[getPaginatedDocuments] Obteniendo documentos paginados para los niveles de acceso: {}", permissibleAccessLevels);
+        return documentRepository.findByIsDeletedFalseAndSecurityAccessLevelIn(permissibleAccessLevels, pageable);
+    }
+    
+    /**
+     * Realiza una búsqueda avanzada de documentos con paginación y filtros dinámicos.
+     * @param title Título para filtrar (parcial)
+     * @param description Descripción para filtrar (parcial)
+     * @param author Nombre del autor para filtrar (parcial)
+     * @param fromDate Fecha desde (formato: yyyy-MM-dd)
+     * @param toDate Fecha hasta (formato: yyyy-MM-dd)
+     * @param documentTypeId ID del tipo de documento
+     * @param tags Lista de nombres de etiquetas
+     * @param pageable Información de paginación y ordenamiento
+     * @return Página de documentos que cumplen con los criterios de búsqueda
+     */
+    @Transactional(readOnly = true)
+    public Page<Document> advancedSearchPaginated(
+            String title, String description, String author, String fromDate, String toDate, 
+            Long documentTypeId, List<String> tags, Pageable pageable) {
+        
+        // Crear especificación base con el filtro de eliminación
+        Specification<Document> spec = Specification.where((root, query, cb) -> 
+            cb.equal(root.get("isDeleted"), false));
+            
+        // Aplicar filtros de seguridad por nivel de acceso
+        Set<String> permissibleAccessLevels = getPermissibleAccessLevels();
+        if (permissibleAccessLevels.isEmpty()) {
+            logger.warn("[advancedSearchPaginated] El usuario no tiene niveles de acceso definidos.");
+            return Page.empty(pageable);
+        }
+        
+        spec = spec.and((root, query, cb) -> 
+            root.get("security").get("accessLevel").in(permissibleAccessLevels));
+        
+        // Filtrar por título
+        if (title != null && !title.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) -> 
+                cb.like(cb.lower(root.get("title")), "%" + title.toLowerCase() + "%"));
+        }
+        
+        // Filtrar por descripción
+        if (description != null && !description.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) -> 
+                cb.like(cb.lower(root.get("description")), "%" + description.toLowerCase() + "%"));
+        }
+        
+        // Filtrar por autor (nombre completo o username)
+        if (author != null && !author.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) -> {
+                String authorPattern = "%" + author.toLowerCase() + "%";
+                return cb.or(
+                    cb.like(cb.lower(root.get("author").get("username")), authorPattern),
+                    cb.like(cb.lower(root.get("author").get("name")), authorPattern),
+                    cb.like(cb.lower(root.get("author").get("surname")), authorPattern)
+                );
+            });
+        }
+        
+        // Filtrar por fecha desde
+        if (fromDate != null && !fromDate.trim().isEmpty()) {
+            try {
+                LocalDateTime fromDateTime = LocalDate.parse(fromDate).atStartOfDay();
+                spec = spec.and((root, query, cb) -> 
+                    cb.greaterThanOrEqualTo(root.get("uploadDate"), fromDateTime));
+            } catch (Exception e) {
+                logger.warn("[advancedSearchPaginated] Formato de fecha 'desde' inválido: {}", fromDate);
+            }
+        }
+        
+        // Filtrar por fecha hasta
+        if (toDate != null && !toDate.trim().isEmpty()) {
+            try {
+                LocalDateTime toDateTime = LocalDate.parse(toDate).atTime(23, 59, 59);
+                spec = spec.and((root, query, cb) -> 
+                    cb.lessThanOrEqualTo(root.get("uploadDate"), toDateTime));
+            } catch (Exception e) {
+                logger.warn("[advancedSearchPaginated] Formato de fecha 'hasta' inválido: {}", toDate);
+            }
+        }
+        
+        // Filtrar por tipo de documento
+        if (documentTypeId != null) {
+            spec = spec.and((root, query, cb) -> 
+                cb.equal(root.get("type").get("id"), documentTypeId));
+        }
+        
+        // Filtrar por etiquetas
+        if (tags != null && !tags.isEmpty()) {
+            spec = spec.and((root, query, cb) -> {
+                // Usar una subconsulta para encontrar documentos que tengan al menos una de las etiquetas
+                query.distinct(true); // Evitar duplicados
+                return root.join("tags").get("name").in(tags);
+            });
+        }
+        
+        // Ejecutar la consulta con paginación
+        return documentRepository.findAll(spec, pageable);
     }
 
     @Transactional
@@ -456,6 +575,13 @@ public class DocumentService {
             logger.debug("[getPermissibleAccessLevels] Usuario es GESTOR, acceso parcial concedido.");
         }
         
+        // Archivista
+        if (userRoles.contains(ROLE_ARCHIVIST)){
+            levels.add(ACCESS_LEVEL_PUBLICO);
+            levels.add(ACCESS_LEVEL_PRIVADO);
+            logger.debug("[getPermissibleAccessLevels] Usuario es ARCHIVISTA, acceso parcial concedido");
+        }
+
         // Verificar USER. Asegura que "Privado" se agregue si el usuario tiene ROLE_USER,
         // incluso si también tiene GESTOR (donde ya se habría agregado).
         if (userRoles.contains(ROLE_USER)) {

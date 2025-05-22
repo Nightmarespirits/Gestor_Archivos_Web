@@ -1,7 +1,6 @@
 package com.ns.iestpffaaarchives.infrastructure.web.dto.mapper;
 
 import com.ns.iestpffaaarchives.domain.entity.User;
-import com.ns.iestpffaaarchives.domain.entity.Role;
 import com.ns.iestpffaaarchives.infrastructure.web.dto.UserDTO;
 import com.ns.iestpffaaarchives.infrastructure.web.dto.RoleDTO;
 

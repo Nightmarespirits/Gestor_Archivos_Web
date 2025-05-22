@@ -139,7 +139,7 @@
         <!-- Resultados de la búsqueda -->
         <v-card>
           <v-card-title class="d-flex justify-space-between align-center">
-            <span>Resultados ({{ filteredDocuments.length }})</span>
+            <span>Resultados ({{ totalItems }} en total)</span>
             <PermissionButton 
               :permissions="['DOCUMENT_CREATE']"
               color="primary" 
@@ -151,11 +151,14 @@
           </v-card-title>
           
           <v-card-text>
-            <v-data-table
+            <v-data-table-server
+              v-model:items-per-page="itemsPerPage"
+              v-model:page="page"
               :headers="headers"
-              :items="filteredDocuments"
+              :items-length="totalItems"
+              :items="searchResults"
               :loading="loading"
-              :items-per-page="10"
+              @update:options="handleTableOptionsUpdate"
               class="elevation-1"
               hover
               :no-data-text="'No se encontraron documentos'"
@@ -173,13 +176,13 @@
               </template>
               
               <!-- Columna de tipo de documento -->
-              <template v-slot:item.type="{ item }">
+              <template v-slot:item.documentType="{ item }">
                 <v-chip
-                  v-if="item.type"
+                  v-if="item.documentType"
                   color="primary"
                   size="small"
                 >
-                  {{ item.type.name }}
+                  {{ item.documentType }}
                 </v-chip>
                 <v-chip
                   v-else
@@ -233,7 +236,7 @@
                   :tooltip="'Editar documento'"
                 />
               </template>
-            </v-data-table>
+            </v-data-table-server>
           </v-card-text>
         </v-card>
       </v-col>
@@ -286,6 +289,12 @@ const snackbar = ref({
 // Almacenar resultados de búsqueda
 const searchResults = ref([]);
 
+// Variables para paginación del lado del servidor
+const page = ref(1); // Vuetify usa paginación basada en 1
+const itemsPerPage = ref(10);
+const totalItems = ref(0);
+const sortBy = ref([{ key: 'id', order: 'asc' }]);
+
 // Columnas de la tabla
 const headers = [
   { title: 'ID', key: 'id', align: 'start', sortable: true },
@@ -297,60 +306,8 @@ const headers = [
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
-// Filtrado de documentos en base a los criterios de búsqueda
-const filteredDocuments = computed(() => {
-  let filtered = [...searchResults.value];
-
-  // Filtrar por título
-  if (searchTitle.value.trim()) {
-    const searchLower = searchTitle.value.toLowerCase().trim();
-    filtered = filtered.filter(doc => 
-      doc.title.toLowerCase().includes(searchLower)
-    );
-  }
-
-  // Filtrar por descripción
-  if (searchDescription.value.trim()) {
-    const searchLower = searchDescription.value.toLowerCase().trim();
-    filtered = filtered.filter(doc => 
-      doc.description && doc.description.toLowerCase().includes(searchLower)
-    );
-  }
-  
-  // Filtrar por tipo de documento
-  if (selectedDocumentType.value) {
-    filtered = filtered.filter(doc => doc.type && doc.type.id === selectedDocumentType.value.id);
-  }
-
-  // Filtrar por etiqueta
-  if (selectedTag.value) {
-    filtered = filtered.filter(doc => doc.tags && doc.tags.some(tag => tag.id === selectedTag.value.id));
-  }
-  
-  // Filtrar por autor
-  if (searchAuthor.value.trim()) {
-    const searchLower = searchAuthor.value.toLowerCase().trim();
-    filtered = filtered.filter(doc => 
-      doc.authorName && doc.authorName.toLowerCase().includes(searchLower)
-    );
-  }
-  
-  // Filtrar por fecha desde
-  if (dateFrom.value) {
-    const fromDate = new Date(dateFrom.value);
-    fromDate.setHours(0, 0, 0, 0); // Establecer al inicio del día
-    filtered = filtered.filter(doc => new Date(doc.uploadDate) >= fromDate);
-  }
-  
-  // Filtrar por fecha hasta
-  if (dateTo.value) {
-    const toDate = new Date(dateTo.value);
-    toDate.setHours(23, 59, 59, 999); // Establecer al final del día
-    filtered = filtered.filter(doc => new Date(doc.uploadDate) <= toDate);
-  }
-
-  return filtered;
-});
+// Nota: Ya no necesitamos filtrado del lado del cliente
+// ya que ahora estamos usando la API con paginación y filtrado del lado del servidor
 
 // Lifecycle
 onMounted(async () => {
@@ -375,18 +332,56 @@ watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor, search
   searchDocuments();
 });
 
+// Manejador para cambios en las opciones de la tabla
+async function handleTableOptionsUpdate(options) {
+  console.log('Opciones de tabla actualizadas:', options);
+  
+  // Actualizar opciones de paginación y ordenamiento
+  page.value = options.page;
+  itemsPerPage.value = options.itemsPerPage;
+  
+  // Manejar ordenamiento
+  if (options.sortBy && options.sortBy.length > 0) {
+    sortBy.value = options.sortBy;
+  } else {
+    // Valor por defecto: ordenar por ID ascendente
+    sortBy.value = [{ key: 'id', order: 'asc' }];
+  }
+  
+  // Cargar datos con las nuevas opciones
+  await searchDocuments();
+}
+
 // Métodos
 async function fetchDocuments() {
   try {
     loading.value = true;
-    await documentsStore.fetchDocuments();
-    searchResults.value = documentsStore.documents || [];
-    console.log("respuesta", documentsStore.documents);
+    
+    // Preparar opciones de paginación para la API
+    const paginationOptions = {
+      page: Math.max(0, page.value - 1), // API usa base 0, Vuetify usa base 1
+      size: itemsPerPage.value,
+      sortBy: sortBy.value.length > 0 ? sortBy.value[0].key : 'id',
+      direction: sortBy.value.length > 0 ? sortBy.value[0].order : 'asc'
+    };
+    
+    console.log('Cargando documentos con paginación:', paginationOptions);
+    
+    // Usar método paginado del store
+    const result = await documentsStore.fetchPaginatedDocuments(paginationOptions);
+    
+    // Actualizar resultados y datos de paginación
+    searchResults.value = result.items || [];
+    totalItems.value = result.pagination?.totalItems || 0;
+    
+    console.log('Documentos cargados:', searchResults.value.length, 'de', totalItems.value, 'total');
+    
     return searchResults.value;
   } catch (error) {
     console.error('Error al cargar documentos:', error);
     showError('Error al cargar documentos. Por favor, inténtelo de nuevo.');
     searchResults.value = [];
+    totalItems.value = 0;
     return [];
   } finally {
     loading.value = false;
@@ -414,18 +409,59 @@ async function fetchTags() {
 async function searchDocuments() {
   try {
     loading.value = true;
-    // Si hay un criterio de búsqueda específico, usar la búsqueda avanzada
-    if (searchTitle.value.trim() || searchAuthor.value.trim() || dateFrom.value || dateTo.value) {
-      // Aquí podrías implementar llamadas a la búsqueda avanzada en el backend
-      // Por ahora, simplemente usamos los documentos ya cargados y filtramos en el cliente
-      await fetchDocuments();
-    } else {
-      // Si no hay criterios específicos, cargar todos los documentos
-      await fetchDocuments();
+    
+    // Construir parámetros de búsqueda
+    const searchParams = {};
+    
+    if (searchTitle.value.trim()) searchParams.title = searchTitle.value.trim();
+    if (searchDescription.value.trim()) searchParams.description = searchDescription.value.trim();
+    if (searchAuthor.value.trim()) searchParams.author = searchAuthor.value.trim();
+    if (dateFrom.value) searchParams.fromDate = dateFrom.value;
+    if (dateTo.value) searchParams.toDate = dateTo.value;
+    
+    // Agregar ID de tipo de documento si está seleccionado
+    if (selectedDocumentType.value) {
+      searchParams.documentTypeId = selectedDocumentType.value.id;
     }
+    
+    // Agregar etiqueta si está seleccionada
+    if (selectedTag.value) {
+      searchParams.tags = [selectedTag.value.name];
+    }
+    
+    // Configurar opciones de paginación
+    const paginationOptions = {
+      page: Math.max(0, page.value - 1), // API usa base 0, Vuetify usa base 1
+      size: itemsPerPage.value,
+      sortBy: sortBy.value.length > 0 ? sortBy.value[0].key : 'id',
+      direction: sortBy.value.length > 0 ? sortBy.value[0].order : 'asc'
+    };
+    
+    console.log('Realizando búsqueda con parámetros:', { searchParams, paginationOptions });
+    
+    let result;
+    
+    // Si no hay filtros activos, cargar todos los documentos con paginación
+    if (Object.keys(searchParams).length === 0) {
+      result = await documentsStore.fetchPaginatedDocuments(paginationOptions);
+    } else {
+      // Realizar búsqueda con paginación
+      result = await documentsStore.searchDocumentsPaginated(searchParams, paginationOptions);
+    }
+    
+    console.log('Resultados de búsqueda:', result);
+    
+    // Actualizar resultados y datos de paginación
+    searchResults.value = result.items || [];
+    totalItems.value = result.pagination?.totalItems || 0;
+    
+    return searchResults.value;
   } catch (error) {
-    console.error('Error en la búsqueda de documentos:', error);
-    showError('Error al buscar documentos. Por favor, inténtelo de nuevo.');
+    console.error('Error en la búsqueda:', error);
+    showError('Error al realizar la búsqueda. Por favor, inténtelo de nuevo.');
+    searchResults.value = [];
+    totalItems.value = 0;
+    return [];
   } finally {
     loading.value = false;
   }
@@ -443,21 +479,21 @@ function resetFilters() {
 }
 
 function viewDocumentDetails(id) {
-  router.push({ name: 'documents-id', params: { id } });
+  router.push({ name: 'DocumentDetail', params: { id } });
 }
 
 function editDocument(id) {
-  router.push({ name: 'documents-id', params: { id }, query: { edit: true } });
+  router.push({ name: 'EditDocument', params: { id }, query: { edit: true } });
 }
 
 function navigateToCreateDocument() {
-  router.push({ name: 'documents-create' });
+  router.push({ name: 'CreateDocument' });
 }
 
 async function downloadDocument(id) {
   try {
-    const url = documentsStore.getDocumentDownloadUrl(id);
-    window.open(url, '_blank');
+    await documentsStore.downloadDocument(id);
+    showSuccess('Documento descargado correctamente');
   } catch (error) {
     console.error('Error al descargar documento:', error);
     showError('Error al descargar documento. Por favor, inténtelo de nuevo.');

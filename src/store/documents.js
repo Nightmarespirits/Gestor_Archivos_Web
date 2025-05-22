@@ -60,16 +60,157 @@ export const useDocumentsStore = defineStore('documents', () => {
     }
   }
 
+  // Estado para paginación
+  const pagination = ref({
+    page: 0,
+    size: 10,
+    totalItems: 0,
+    totalPages: 0
+  });
+
+  // Opciones de ordenamiento
+  const sortOptions = ref({
+    sortBy: 'id',
+    direction: 'asc'
+  });
+
   // Actions
   async function fetchDocuments() {
     try {
       loading.value = true;
       const data = await api.get('/documents', { debug: true });
-      documents.value = data;
+      documents.value = data || [];
     } catch (err) {
       error.value = err.message;
       console.error('fetchDocuments Error:', err);
-      throw err;
+      documents.value = [];
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Obtiene documentos con paginación del servidor
+   * @param {Object} options - Opciones de paginación y filtrado
+   * @returns {Promise} - Datos paginados
+   */
+  async function fetchPaginatedDocuments(options = {}) {
+    try {
+      loading.value = true;
+      
+      const {
+        page = pagination.value.page,
+        size = pagination.value.size,
+        sortBy = sortOptions.value.sortBy,
+        direction = sortOptions.value.direction,
+        filters = {}
+      } = options;
+      
+      // Actualizar opciones en el store
+      pagination.value.page = page;
+      pagination.value.size = size;
+      sortOptions.value.sortBy = sortBy;
+      sortOptions.value.direction = direction;
+      
+      const response = await api.getPaginated('/documents/paginated', {
+        page,
+        pageSize: size,
+        sortBy,
+        sortDirection: direction,
+        filters,
+        debug: true
+      });
+      
+      // Actualizar el estado con los resultados
+      documents.value = response.content || [];
+      pagination.value.totalItems = response.totalElements || 0;
+      pagination.value.totalPages = response.totalPages || 0;
+      
+      return {
+        items: documents.value,
+        pagination: { ...pagination.value }
+      };
+    } catch (err) {
+      error.value = err.message;
+      console.error('fetchPaginatedDocuments Error:', err);
+      documents.value = [];
+      return {
+        items: [],
+        pagination: { ...pagination.value, totalItems: 0, totalPages: 0 }
+      };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Búsqueda avanzada de documentos con paginación
+   * @param {Object} searchParams - Parámetros de búsqueda
+   * @param {Object} paginationOptions - Opciones de paginación
+   * @returns {Promise} - Resultados de búsqueda paginados
+   */
+  async function searchDocumentsPaginated(searchParams = {}, paginationOptions = {}) {
+    try {
+      loading.value = true;
+      
+      const {
+        title,
+        description,
+        author,
+        fromDate,
+        toDate,
+        documentTypeId,
+        tags
+      } = searchParams;
+      
+      const {
+        page = pagination.value.page,
+        size = pagination.value.size,
+        sortBy = sortOptions.value.sortBy,
+        direction = sortOptions.value.direction
+      } = paginationOptions;
+      
+      // Construir filtros para la búsqueda
+      const filters = {};
+      if (title) filters.title = title;
+      if (description) filters.description = description;
+      if (author) filters.author = author;
+      if (fromDate) filters.fromDate = fromDate;
+      if (toDate) filters.toDate = toDate;
+      if (documentTypeId) filters.documentTypeId = documentTypeId;
+      if (tags && tags.length > 0) filters.tags = tags;
+      
+      // Usar la función de paginación con los filtros
+      const response = await api.getPaginated('/documents/search', {
+        page,
+        pageSize: size,
+        sortBy,
+        sortDirection: direction,
+        filters,
+        debug: true
+      });
+      
+      // Actualizar el estado con los resultados
+      documents.value = response.content || [];
+      pagination.value = {
+        page,
+        size,
+        totalItems: response.totalElements || 0,
+        totalPages: response.totalPages || 0
+      };
+      
+      return {
+        items: documents.value,
+        pagination: { ...pagination.value }
+      };
+    } catch (err) {
+      error.value = err.message;
+      console.error('searchDocumentsPaginated Error:', err);
+      documents.value = [];
+      return {
+        items: [],
+        pagination: { ...pagination.value, totalItems: 0, totalPages: 0 }
+      };
     } finally {
       loading.value = false;
     }
@@ -343,6 +484,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     tags,
     previewCache,
     accessLevels,
+    pagination,
+    sortOptions,
 
     // Getters
     getDocuments,
@@ -357,6 +500,8 @@ export const useDocumentsStore = defineStore('documents', () => {
 
     // Actions
     fetchDocuments,
+    fetchPaginatedDocuments,
+    searchDocumentsPaginated,
     fetchDocumentById,
     createDocument,
     updateDocument,

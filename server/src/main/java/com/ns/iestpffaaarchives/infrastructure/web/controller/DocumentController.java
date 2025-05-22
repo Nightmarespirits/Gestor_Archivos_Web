@@ -5,7 +5,6 @@ import com.ns.iestpffaaarchives.application.service.UserService;
 import com.ns.iestpffaaarchives.application.service.TagService;
 import com.ns.iestpffaaarchives.application.service.DocumentTypeService;
 import com.ns.iestpffaaarchives.domain.entity.Document;
-import com.ns.iestpffaaarchives.domain.entity.DocumentVersion;
 import com.ns.iestpffaaarchives.domain.entity.User;
 import com.ns.iestpffaaarchives.domain.entity.Tag;
 import com.ns.iestpffaaarchives.domain.entity.DocumentType;
@@ -22,6 +21,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -35,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.springframework.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,6 +78,34 @@ public class DocumentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+    
+    @GetMapping("/paginated")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
+    public ResponseEntity<Page<DocumentDTO>> getPaginatedDocuments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction) {
+        try {
+            // Validar que la página no sea negativa
+            page = Math.max(0, page);
+            
+            // Validar tamaño de página (mínimo 1, máximo 100)
+            size = Math.max(1, Math.min(100, size));
+            
+            Sort sort = direction.equalsIgnoreCase("asc") ? 
+                Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+                
+            Pageable pageable = PageRequest.of(page, size, sort);
+            Page<Document> documents = documentService.getPaginatedDocuments(pageable);
+            
+            Page<DocumentDTO> dtoPage = documents.map(DocumentMapper::toDTO);
+            return ResponseEntity.ok(dtoPage);
+        } catch (Exception e) {
+            logger.error("Error al obtener documentos paginados: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('DOCUMENT_READ')")
@@ -107,7 +137,45 @@ public class DocumentController {
 
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('DOCUMENT_READ')")
-    public ResponseEntity<List<DocumentDTO>> searchDocuments(
+    public ResponseEntity<Page<DocumentDTO>> searchDocuments(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String description,
+            @RequestParam(required = false) String author,
+            @RequestParam(required = false) String fromDate,
+            @RequestParam(required = false) String toDate,
+            @RequestParam(required = false) Long documentTypeId,
+            @RequestParam(required = false) List<String> tags,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String direction
+    ) {
+        try {
+            // Validar que la página no sea negativa
+            page = Math.max(0, page);
+            
+            // Validar tamaño de página (mínimo 1, máximo 100)
+            size = Math.max(1, Math.min(100, size));
+            
+            Sort sort = direction.equalsIgnoreCase("asc") ? 
+                Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+                
+            Pageable pageable = PageRequest.of(page, size, sort);
+            
+            Page<Document> results = documentService.advancedSearchPaginated(
+                title, description, author, fromDate, toDate, documentTypeId, tags, pageable);
+                
+            Page<DocumentDTO> dtoPage = results.map(DocumentMapper::toDTO);
+            return ResponseEntity.ok(dtoPage);
+        } catch (Exception e) {
+            logger.error("Error en búsqueda avanzada: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    @GetMapping("/search/legacy")
+    @PreAuthorize("hasAuthority('DOCUMENT_READ')")
+    public ResponseEntity<List<DocumentDTO>> searchDocumentsLegacy(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
             @RequestParam(required = false) String fromDate,
