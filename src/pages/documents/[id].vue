@@ -88,6 +88,31 @@
                     </v-list-item>
                     <v-list-item>
                       <template v-slot:prepend>
+                        <v-icon color="primary">mdi-shield-outline</v-icon>
+                      </template>
+                      <v-list-item-title>Nivel de Acceso</v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-chip
+                          :color="getSecurityLevelColor(document.security?.accessLevel)"
+                          size="small"
+                          class="mr-2"
+                        >
+                          {{ document.security?.accessLevel || 'Privado' }}
+                        </v-chip>
+                        <v-tooltip location="bottom">
+                          <template v-slot:activator="{ props }">
+                            <v-icon v-bind="props" size="small">mdi-information-outline</v-icon>
+                          </template>
+                          <span>
+                            Privado: Visible para todos los usuarios<br>
+                            Reservado: Visible para gestores y administradores<br>
+                            Secreto: Visible solo para administradores
+                          </span>
+                        </v-tooltip>
+                      </v-list-item-subtitle>
+                    </v-list-item>
+                    <v-list-item>
+                      <template v-slot:prepend>
                         <v-icon color="primary">mdi-numeric</v-icon>
                       </template>
                       <v-list-item-title>Versión</v-list-item-title>
@@ -377,15 +402,20 @@ function beforeDialogClose() {
 }
 
 function formatDate(dateString) {
-  if (!dateString) return 'N/A';
+  if (!dateString) return 'Fecha no disponible';
   const date = new Date(dateString);
-  return new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+  const options = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
-  }).format(date);
+  };
+  return new Intl.DateTimeFormat('es-ES', options).format(date);
+}
+
+function getSecurityLevelColor(level) {
+  return documentsStore.getSecurityLevelColor(level);
 }
 
 function showSuccess(message) {

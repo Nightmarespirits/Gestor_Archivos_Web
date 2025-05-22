@@ -60,19 +60,6 @@
             </v-row>
 
             <v-row>
-              <!-- Búsqueda por descripción -->
-              <v-col cols="12" md="3">
-                <v-text-field
-                  v-model="searchDescription"
-                  label="Buscar por descripción"
-                  prepend-inner-icon="mdi-text-box-search"
-                  variant="outlined"
-                  density="comfortable"
-                  hide-details
-                  clearable
-                ></v-text-field>
-              </v-col>
-              
               <!-- Búsqueda por autor -->
               <v-col cols="12" md="3">
                 <v-text-field
@@ -110,6 +97,39 @@
                   hide-details
                   clearable
                 ></v-text-field>
+              </v-col>
+              
+              <!-- Filtro por nivel de acceso -->
+              <v-col cols="12" md="3">
+                <v-select
+                  v-model="selectedSecurityLevel"
+                  :items="accessLevels"
+                  label="Nivel de acceso"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                  prepend-inner-icon="mdi-shield-outline"
+                  clearable
+                >
+                  <template v-slot:selection="{ item }">
+                    <v-chip
+                      :color="getSecurityLevelColor(item.value)"
+                      size="small"
+                      class="mr-2"
+                    >
+                      {{ item.value }}
+                    </v-chip>
+                  </template>
+                  <template v-slot:item="{ item, props }">
+                    <v-list-item
+                      v-bind="props"
+                      :title="item.value"
+                      :prepend-icon="getSecurityLevelIcon(item.value)"
+                      :subtitle="getSecurityLevelDescription(item.value)"
+                    >
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
             </v-row>
 
@@ -195,11 +215,15 @@
                 {{ formatDate(item.uploadDate) }}
               </template>
               
-              <!-- Columna de descripción -->
-              <template v-slot:item.description="{ item }">
-                <span class="text-truncate d-inline-block" style="max-width: 200px;" :title="item.description">
-                  {{ item.description || 'Sin descripción' }}
-                </span>
+              <!-- Columna de nivel de acceso -->
+              <template v-slot:item.security="{ item }">
+                <v-chip
+                  :color="getSecurityLevelColor(item.security?.accessLevel)"
+                  size="small"
+                  class="mr-2"
+                >
+                  {{ item.security?.accessLevel || 'Privado' }}
+                </v-chip>
               </template>
               
               <!-- Columna de acciones -->
@@ -253,6 +277,29 @@
       </template>
     </v-snackbar>
   </v-container>
+          :permissions="['DOCUMENT_UPDATE']"
+          prependIcon="mdi-pencil"
+          variant="plain"
+          color="primary"
+          @click="editDocument(item.id)"
+          :disabled="loading"
+          :tooltip="'Editar documento'"
+        />
+      </template>
+    </v-data-table>
+  </v-card-text>
+</v-card>
+</v-col>
+</v-row>
+
+<!-- Snackbar para notificaciones -->
+<v-snackbar
+  v-model="snackbar.show"
+  :color="snackbar.color"
+  :timeout="snackbar.timeout"
+>
+  {{ snackbar.text }}
+  <template v-slot:actions>
 </template>
 
 <script setup>
@@ -267,14 +314,15 @@ const router = useRouter();
 
 // Estado del componente
 const searchTitle = ref('');
-const searchDescription = ref('');
 const searchAuthor = ref('');
 const selectedDocumentType = ref(null);
 const selectedTag = ref(null);
 const dateFrom = ref('');
 const dateTo = ref('');
+const selectedSecurityLevel = ref(null);
 const documentTypes = ref([]);
 const tags = ref([]);
+const accessLevels = computed(() => documentsStore.getAccessLevels());
 const loading = ref(false);
 const snackbar = ref({
   show: false,
@@ -283,21 +331,18 @@ const snackbar = ref({
   timeout: 3000
 });
 
-// Almacenar resultados de búsqueda
-const searchResults = ref([]);
-
 // Columnas de la tabla
 const headers = [
   { title: 'ID', key: 'id', align: 'start', sortable: true },
-  { title: 'Título', key: 'title', align: 'start', sortable: true, width: '20%' },
-  { title: 'Descripción', key: 'description', align: 'start', sortable: true, width: '25%' },
+  { title: 'Título', key: 'title', align: 'start', sortable: true, width: '30%' },
   { title: 'Tipo', key: 'documentType', align: 'center', sortable: true },
   { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
   { title: 'Autor', key: 'authorName', align: 'center', sortable: true },
+  { title: 'Nivel de Acceso', key: 'security', align: 'center', sortable: true },
   { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
 ];
 
-// Filtrado de documentos en base a los criterios de búsqueda
+// Computed
 const filteredDocuments = computed(() => {
   let filtered = [...searchResults.value];
 
@@ -305,15 +350,8 @@ const filteredDocuments = computed(() => {
   if (searchTitle.value.trim()) {
     const searchLower = searchTitle.value.toLowerCase().trim();
     filtered = filtered.filter(doc => 
-      doc.title.toLowerCase().includes(searchLower)
-    );
-  }
-
-  // Filtrar por descripción
-  if (searchDescription.value.trim()) {
-    const searchLower = searchDescription.value.toLowerCase().trim();
-    filtered = filtered.filter(doc => 
-      doc.description && doc.description.toLowerCase().includes(searchLower)
+      doc.title.toLowerCase().includes(searchLower) ||
+      (doc.description && doc.description.toLowerCase().includes(searchLower))
     );
   }
   
@@ -331,7 +369,9 @@ const filteredDocuments = computed(() => {
   if (searchAuthor.value.trim()) {
     const searchLower = searchAuthor.value.toLowerCase().trim();
     filtered = filtered.filter(doc => 
-      doc.authorName && doc.authorName.toLowerCase().includes(searchLower)
+      doc.author.username.toLowerCase().includes(searchLower) ||
+      (doc.author.name && doc.author.name.toLowerCase().includes(searchLower)) ||
+      (doc.author.surname && doc.author.surname.toLowerCase().includes(searchLower))
     );
   }
   
@@ -348,30 +388,41 @@ const filteredDocuments = computed(() => {
     toDate.setHours(23, 59, 59, 999); // Establecer al final del día
     filtered = filtered.filter(doc => new Date(doc.uploadDate) <= toDate);
   }
+  
+  // Filtrar por nivel de acceso
+  if (selectedSecurityLevel.value) {
+    filtered = filtered.filter(doc => 
+      doc.security && 
+      doc.security.accessLevel === selectedSecurityLevel.value
+    );
+  }
 
   return filtered;
 });
 
 // Lifecycle
 onMounted(async () => {
-  loading.value = true;
   try {
-    // Cargar datos maestros
-    await Promise.all([
-      fetchDocumentTypes(),
-      fetchTags(),
-      fetchDocuments()
-    ]);
+    loading.value = true;
+    
+    // Cargar documentos
+    await fetchDocuments();
+    
+    // Cargar tipos de documentos
+    await fetchDocumentTypes();
+    
+    // Cargar etiquetas
+    await fetchTags();
+    
   } catch (error) {
-    console.error('Error durante la inicialización:', error);
-    showError('Error al cargar datos. Por favor, inténtelo de nuevo.');
+    showError('Error al cargar los datos iniciales: ' + error.message);
   } finally {
     loading.value = false;
   }
 });
 
 // Observar cambios en los filtros para actualizar la búsqueda
-watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor, searchDescription], () => {
+watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor, selectedSecurityLevel], () => {
   searchDocuments();
 });
 
@@ -379,15 +430,12 @@ watch([selectedDocumentType, selectedTag, dateFrom, dateTo, searchAuthor, search
 async function fetchDocuments() {
   try {
     loading.value = true;
+     
     await documentsStore.fetchDocuments();
-    searchResults.value = documentsStore.documents || [];
-    console.log("respuesta", documentsStore.documents);
-    return searchResults.value;
+    documents.value = documentsStore.documents;
+    console.log('Documentos cargados:', JSON.stringify(documents.value, null, 2));
   } catch (error) {
-    console.error('Error al cargar documentos:', error);
-    showError('Error al cargar documentos. Por favor, inténtelo de nuevo.');
-    searchResults.value = [];
-    return [];
+    showError('Error al cargar documentos: ' + error.message);
   } finally {
     loading.value = false;
   }
@@ -395,37 +443,39 @@ async function fetchDocuments() {
 
 async function fetchDocumentTypes() {
   try {
-    documentTypes.value = await documentsStore.fetchDocumentTypes() || [];
+    documentTypes.value = await documentsStore.fetchDocumentTypes();
   } catch (error) {
-    console.error('Error al cargar tipos de documentos:', error);
-    documentTypes.value = [];
+    showError('Error al cargar tipos de documentos: ' + error.message);
   }
 }
 
 async function fetchTags() {
   try {
-    tags.value = await documentsStore.fetchTags() || [];
+    tags.value = await documentsStore.fetchTags();
   } catch (error) {
-    console.error('Error al cargar etiquetas:', error);
-    tags.value = [];
+    showError('Error al cargar etiquetas: ' + error.message);
   }
 }
 
 async function searchDocuments() {
   try {
     loading.value = true;
-    // Si hay un criterio de búsqueda específico, usar la búsqueda avanzada
-    if (searchTitle.value.trim() || searchAuthor.value.trim() || dateFrom.value || dateTo.value) {
-      // Aquí podrías implementar llamadas a la búsqueda avanzada en el backend
-      // Por ahora, simplemente usamos los documentos ya cargados y filtramos en el cliente
-      await fetchDocuments();
-    } else {
-      // Si no hay criterios específicos, cargar todos los documentos
-      await fetchDocuments();
+    
+    // Si hay un título de búsqueda, usar la búsqueda por título
+    if (searchTitle.value.trim()) {
+      documents.value = await documentsStore.searchDocumentsByTitle(searchTitle.value.trim());
+    } 
+    // Si hay una etiqueta seleccionada, buscar por etiqueta
+    else if (selectedTag.value) {
+      documents.value = await documentsStore.fetchDocumentsByTag(selectedTag.value.name);
     }
+    // De lo contrario, cargar todos los documentos
+    else {
+      documents.value = await documentsStore.getDocuments();
+    }
+    
   } catch (error) {
-    console.error('Error en la búsqueda de documentos:', error);
-    showError('Error al buscar documentos. Por favor, inténtelo de nuevo.');
+    showError('Error al buscar documentos: ' + error.message);
   } finally {
     loading.value = false;
   }
@@ -433,34 +483,32 @@ async function searchDocuments() {
 
 function resetFilters() {
   searchTitle.value = '';
-  searchDescription.value = '';
   searchAuthor.value = '';
   selectedDocumentType.value = null;
   selectedTag.value = null;
   dateFrom.value = '';
   dateTo.value = '';
+  selectedSecurityLevel.value = null;
   fetchDocuments();
 }
 
 function viewDocumentDetails(id) {
-  router.push({ name: 'documents-id', params: { id } });
+  router.push(`/documents/${id}`);
 }
 
 function editDocument(id) {
-  router.push({ name: 'documents-id', params: { id }, query: { edit: true } });
+  router.push(`/documents/${id}/edit`);
 }
 
 function navigateToCreateDocument() {
-  router.push({ name: 'documents-create' });
+  router.push('/documents/create');
 }
 
 async function downloadDocument(id) {
   try {
-    const url = documentsStore.getDocumentDownloadUrl(id);
-    window.open(url, '_blank');
+    await documentsStore.downloadDocument(id);
   } catch (error) {
-    console.error('Error al descargar documento:', error);
-    showError('Error al descargar documento. Por favor, inténtelo de nuevo.');
+    showError('Error al descargar el documento: ' + error.message);
   }
 }
 
@@ -477,7 +525,34 @@ function formatDate(dateString) {
   }).format(date);
 }
 
+// Funciones para el nivel de seguridad
+function getSecurityLevelColor(level) {
+  return documentsStore.getSecurityLevelColor(level);
+}
 
+function getSecurityLevelIcon(level) {
+  switch (level) {
+    case 'Secreto':
+      return 'mdi-shield-lock';
+    case 'Reservado':
+      return 'mdi-shield-alert';
+    case 'Privado':
+    default:
+      return 'mdi-shield-check';
+  }
+}
+
+function getSecurityLevelDescription(level) {
+  switch (level) {
+    case 'Secreto':
+      return 'Solo visible para administradores';
+    case 'Reservado':
+      return 'Visible para gestores y administradores';
+    case 'Privado':
+    default:
+      return 'Visible para todos los usuarios';
+  }
+}
 
 function showSuccess(message) {
   snackbar.value = {
@@ -502,7 +577,9 @@ function showError(message) {
 .gap-1 {
   gap: 4px;
 }
-.w-auto {
-  width: auto;
+
+.v-data-table {
+  border-radius: 8px;
+  overflow: hidden;
 }
 </style>

@@ -50,6 +50,37 @@
                   ></v-select>
                 </v-col>
                 
+                <!-- Nivel de acceso -->
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="formData.security.accessLevel"
+                    :items="accessLevels"
+                    label="Nivel de acceso *"
+                    variant="outlined"
+                    :rules="[v => !!v || 'El nivel de acceso es obligatorio']"
+                    required
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip
+                        :color="getSecurityLevelColor(item.value)"
+                        size="small"
+                        class="mr-2"
+                      >
+                        {{ item.value }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item="{ item, props }">
+                      <v-list-item
+                        v-bind="props"
+                        :title="item.value"
+                        :prepend-icon="getSecurityLevelIcon(item.value)"
+                        :subtitle="getSecurityLevelDescription(item.value)"
+                      >
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                </v-col>
+                
                 <!-- Descripción del documento -->
                 <v-col cols="12">
                   <v-textarea
@@ -156,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed} from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
 import { useAuthStore } from '@/store/auth';
@@ -188,7 +219,15 @@ const formData = ref({
   type: null,
   tags: [],
   file: null,
+  security: {
+    accessLevel: 'Privado' // Valor por defecto
+  },
   authorId: null
+});
+
+// Definir los niveles de acceso disponibles según el rol del usuario
+const accessLevels = computed(() => {
+  return documentsStore.getAccessLevels();
 });
 
 // Cargar datos iniciales
@@ -246,6 +285,7 @@ async function submitForm() {
     formDataToSend.append('description', formData.value.description || '');
     formDataToSend.append('authorId', formData.value.authorId);
     formDataToSend.append('type', formData.value.type);
+    formDataToSend.append('security', JSON.stringify(formData.value.security));
     
     // Agregar etiquetas si existen
     if (formData.value.tags && formData.value.tags.length > 0) {
@@ -279,6 +319,9 @@ function resetForm() {
     type: null,
     tags: [],
     file: null,
+    security: {
+      accessLevel: 'Privado' // Valor por defecto
+    },
     authorId: authStore.user ? authStore.user.id : null
   };
   
@@ -298,34 +341,67 @@ function goBack() {
 
 // Utilidades
 function getFileIcon(file) {
-  if (!file) return 'mdi-file-outline';
+  if (!file) return 'mdi-file-question-outline';
   
-  const extension = file.name.split('.').pop().toLowerCase();
+  const fileName = file.name || '';
+  const extension = fileName.split('.').pop().toLowerCase();
   
-  const iconMap = {
-    pdf: 'mdi-file-pdf-box',
-    doc: 'mdi-file-word-outline',
-    docx: 'mdi-file-word-outline',
-    xls: 'mdi-file-excel-outline',
-    xlsx: 'mdi-file-excel-outline',
-    ppt: 'mdi-file-powerpoint-outline',
-    pptx: 'mdi-file-powerpoint-outline',
-    jpg: 'mdi-file-image-outline',
-    jpeg: 'mdi-file-image-outline',
-    png: 'mdi-file-image-outline',
-    txt: 'mdi-file-document-outline'
-  };
-  
-  return iconMap[extension] || 'mdi-file-outline';
+  switch (extension) {
+    case 'pdf':
+      return 'mdi-file-pdf-box';
+    case 'doc':
+    case 'docx':
+      return 'mdi-file-word-outline';
+    case 'xls':
+    case 'xlsx':
+      return 'mdi-file-excel-outline';
+    case 'ppt':
+    case 'pptx':
+      return 'mdi-file-powerpoint-outline';
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+      return 'mdi-file-image-outline';
+    case 'txt':
+      return 'mdi-file-document-outline';
+    default:
+      return 'mdi-file-outline';
+  }
 }
 
 function formatFileSize(size) {
-  if (size < 1024) {
-    return size + ' bytes';
-  } else if (size < 1024 * 1024) {
-    return (size / 1024).toFixed(2) + ' KB';
-  } else {
-    return (size / (1024 * 1024)).toFixed(2) + ' MB';
+  if (size === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(size) / Math.log(k));
+  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function getSecurityLevelColor(level) {
+  return documentsStore.getSecurityLevelColor(level);
+}
+
+function getSecurityLevelIcon(level) {
+  switch (level) {
+    case 'Secreto':
+      return 'mdi-shield-lock';
+    case 'Reservado':
+      return 'mdi-shield-alert';
+    case 'Privado':
+    default:
+      return 'mdi-shield-check';
+  }
+}
+
+function getSecurityLevelDescription(level) {
+  switch (level) {
+    case 'Secreto':
+      return 'Solo visible para administradores';
+    case 'Reservado':
+      return 'Visible para gestores y administradores';
+    case 'Privado':
+    default:
+      return 'Visible para todos los usuarios';
   }
 }
 

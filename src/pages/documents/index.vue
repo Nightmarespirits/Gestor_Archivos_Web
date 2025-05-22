@@ -74,6 +74,14 @@
             {{ new Date(item.uploadDate).toLocaleDateString() }}
           </template>
           
+          <template v-slot:item.security.accessLevel="{ item }">
+            <v-chip
+              :color="getSecurityLevelColor(item.security?.accessLevel)"
+              size="small"
+              :text="item.security?.accessLevel || 'Privado'"
+            ></v-chip>
+          </template>
+          
           <template v-slot:item.actions="{ item }">
             <PermissionButton
               :permissions="['DOCUMENT_READ']"
@@ -119,33 +127,76 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useDocumentsStore } from '@/store/documents';
 import { useRouter } from 'vue-router';
+import { useDocumentsStore } from '@/store/documents';
 import PermissionButton from '@/components/common/PermissionButton.vue';
 
-// Store
-const documentsStore = useDocumentsStore();
 const router = useRouter();
+const documentsStore = useDocumentsStore();
+
+// Variable para búsqueda
+const search = ref('');
+
+// Configuración de la tabla
+const headers = ref([
+  {
+    title: 'ID',
+    key: 'id',
+    align: 'start',
+    sortable: true,
+  },
+  {
+    title: 'Título',
+    key: 'title',
+    align: 'start',
+    sortable: true,
+    maxWidth: 200,
+  },
+  {
+    title: 'Tipo',
+    key: 'documentType',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    title: 'Versión',
+    key: 'versionNumber',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    title: 'Fecha de Subida',
+    key: 'uploadDate',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    title: 'Autor',
+    key: 'authorName',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    title: 'Nivel de Acceso',
+    key: 'security.accessLevel',
+    align: 'center',
+    sortable: true,
+  },
+  {
+    title: 'Acciones',
+    key: 'actions',
+    align: 'center',
+    sortable: false,
+  },
+]);
 
 // Estado
-const search = ref('');
 const snackbar = ref({
   show: false,
   text: '',
   color: 'success',
   timeout: 3000,
 });
-
-// Columnas de la tabla
-const headers = [
-  { title: 'ID', key: 'id', align: 'start', sortable: true },
-  { title: 'Título', key: 'title', align: 'start', sortable: true , maxWidth: 200 },
-  { title: 'Tipo', key: 'documentType', align: 'center', sortable: true },
-  { title: 'Versión', key: 'versionNumber', align: 'center', sortable: true },
-  { title: 'Fecha de Subida', key: 'uploadDate', align: 'center', sortable: true },
-  { title: 'Autor', key: 'authorName', align: 'center', sortable: true },
-  { title: 'Acciones', key: 'actions', align: 'center', sortable: false },
-];
 
 // Cargar documentos al montar el componente
 onMounted(async () => {
@@ -164,10 +215,16 @@ function navigateToCreateDocument() {
 
 // Navegar a la página de edición de documentos
 function navigateToEditDocument(document) {
-  router.push({ 
-    name: 'EditDocument', 
-    params: { id: document.id }
+  router.push({
+    name: 'EditDocument',
+    params: { id: document.id },
+    query: { edit: true }
   });
+}
+
+// Obtener el color para el nivel de seguridad
+function getSecurityLevelColor(level) {
+  return documentsStore.getSecurityLevelColor(level);
 }
 
 // Ver detalles del documento

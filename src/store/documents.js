@@ -10,6 +10,7 @@ export const useDocumentsStore = defineStore('documents', () => {
   const error = ref(null);
   const documentTypes = ref([]);
   const tags = ref([]);
+  const accessLevels = ref(['Privado', 'Reservado', 'Secreto']);
   const activityLogsStore = useActivityLogsStore();
   const previewCache = new Map();
 
@@ -41,6 +42,22 @@ export const useDocumentsStore = defineStore('documents', () => {
 
   function getTags() {
     return tags.value;
+  }
+  
+  function getAccessLevels() {
+    return accessLevels.value;
+  }
+  
+  function getSecurityLevelColor(level) {
+    switch (level) {
+      case 'Secreto':
+        return 'red';
+      case 'Reservado':
+        return 'orange';
+      case 'Privado':
+      default:
+        return 'green';
+    }
   }
 
   // Actions
@@ -86,10 +103,20 @@ export const useDocumentsStore = defineStore('documents', () => {
             formData.append('file', documentData.file);
           } else if (key === 'tags' && Array.isArray(documentData.tags)) {
             formData.append('tags', JSON.stringify(documentData.tags));
+          } else if (key === 'security') {
+            // Manejar objeto security específicamente
+            if (documentData.security && documentData.security.accessLevel) {
+              formData.append('security.accessLevel', documentData.security.accessLevel);
+            }
           } else {
             formData.append(key, documentData[key]);
           }
         });
+      }
+      
+      // Asegurarse de que siempre haya un nivel de acceso por defecto si no se especificó
+      if (!formData.has('security.accessLevel')) {
+        formData.append('security.accessLevel', 'Privado');
       }
 
       const newDocument = await api.post('/documents', formData, {
@@ -115,41 +142,43 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function updateDocument(id, documentData) {
     try {
       loading.value = true;
-      const formData = new FormData();
-      // Log de los datos originales
-      console.log('[updateDocument] Datos originales:', documentData);
-      Object.keys(documentData).forEach(key => {
-        if (key === 'file' && documentData.file) {
-          formData.append('file', documentData.file);
-        } else if (key === 'tags' && Array.isArray(documentData.tags)) {
-          documentData.tags.forEach(tag => {
-            formData.append('tags', typeof tag === 'object' ? tag.name : tag);
-          });
-        } else if ((key === 'type' || key === 'documentTypeId') && documentData[key]) {
-          // Mapear correctamente el ID de tipo de documento
-          let docTypeId = documentData[key];
-          if (typeof docTypeId === 'object' && docTypeId.id) {
-            docTypeId = docTypeId.id;
-          } else if (typeof docTypeId === 'string') {
-            const docType = documentTypes.value.find(dt => dt.name === docTypeId || dt.id == docTypeId);
-            if (docType) docTypeId = docType.id;
+      
+      // Si documentData ya es un FormData, usarlo directamente
+      const formData = documentData instanceof FormData ? documentData : new FormData();
+      
+      // Si no es FormData, crear uno nuevo (mantener compatibilidad con código existente)
+      if (!(documentData instanceof FormData)) {
+        Object.keys(documentData).forEach(key => {
+          if (key === 'file') {
+            if (documentData.file) {
+              formData.append('file', documentData.file);
+            }
+          } else if (key === 'tags' && Array.isArray(documentData.tags)) {
+            formData.append('tags', JSON.stringify(documentData.tags));
+          } else if (key === 'security') {
+            // Manejar objeto security específicamente
+            if (documentData.security && documentData.security.accessLevel) {
+              formData.append('security.accessLevel', documentData.security.accessLevel);
+            }
+          } else {
+            formData.append(key, documentData[key]);
           }
-          formData.append('documentTypeId', docTypeId);
-        } else if (documentData[key] !== undefined) {
-          formData.append(key, documentData[key]);
-        }
-      });
-      // Log de los datos enviados
-      for (let [k, v] of formData.entries()) {
-        console.log(`[updateDocument] FormData: ${k} =`, v);
+        });
       }
       
+      // Asegurarse de que siempre haya un nivel de acceso por defecto si no se especificó
+      if (!formData.has('security.accessLevel') && currentDocument.value && currentDocument.value.security) {
+        // Mantener el nivel actual si existe
+        formData.append('security.accessLevel', currentDocument.value.security.accessLevel);
+      } else if (!formData.has('security.accessLevel')) {
+        // Nivel por defecto
+        formData.append('security.accessLevel', 'Privado');
+      }
+
       const updatedDocument = await api.put(`/documents/${id}`, formData, {
         isFormData: true,
         debug: true
       });
-      
-      console.log('[updateDocument] Documento actualizado recibido:', updatedDocument);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -308,10 +337,12 @@ export const useDocumentsStore = defineStore('documents', () => {
     // State
     documents,
     currentDocument,
-    documentTypes,
-    tags,
     loading,
     error,
+    documentTypes,
+    tags,
+    previewCache,
+    accessLevels,
 
     // Getters
     getDocuments,
@@ -321,6 +352,8 @@ export const useDocumentsStore = defineStore('documents', () => {
     getDocumentTypes,
     getTags,
     getDocumentDownloadUrl,
+    getAccessLevels,
+    getSecurityLevelColor,
 
     // Actions
     fetchDocuments,

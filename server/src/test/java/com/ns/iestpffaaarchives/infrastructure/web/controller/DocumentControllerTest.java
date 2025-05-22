@@ -22,8 +22,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.file.Path;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -92,6 +90,7 @@ public class DocumentControllerTest {
         );
     }
 
+    @SuppressWarnings("deprecation")
     @Test
     void createDocument_Success() {
         // Arrange

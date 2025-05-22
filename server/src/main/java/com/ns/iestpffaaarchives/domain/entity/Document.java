@@ -10,6 +10,9 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIdentityReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 @Entity
 @Table(name = "documents")
@@ -41,6 +44,8 @@ public class Document {
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author_id", nullable = false)
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
+    @JsonIdentityReference(alwaysAsId = true)
     private User author;
 
     @ManyToOne(fetch = FetchType.EAGER)
@@ -63,6 +68,7 @@ public class Document {
         joinColumns = @JoinColumn(name = "document_id"),
         inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
+    @JsonIdentityReference(alwaysAsId = true)
     private Set<Tag> tags = new HashSet<>();
 
     @PrePersist
