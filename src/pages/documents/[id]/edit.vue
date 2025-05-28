@@ -45,6 +45,36 @@
                   ></v-text-field>
                 </v-col>
                 
+                <!-- Nivel de acceso -->
+                <v-col cols="12" md="6">
+                  <v-select
+                    v-model="formData.security.accessLevel"
+                    :items="accessLevels"
+                    label="Nivel de acceso *"
+                    variant="outlined"
+                    :rules="[v => !!v || 'El nivel de acceso es obligatorio']"
+                    required
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip
+                        :color="getSecurityLevelColor(item.value)"
+                        size="small"
+                        class="mr-2"
+                      >
+                        {{ item.value }}
+                      </v-chip>
+                    </template>
+                    <template v-slot:item="{ item, props }">
+                      <v-list-item
+                        v-bind="props"
+                        :title="item.value"
+                        :prepend-icon="getSecurityLevelIcon(item.value)"
+                        :subtitle="getSecurityLevelDescription(item.value)"
+                      >
+                      </v-list-item>
+                    </template>
+                  </v-select>
+                </v-col>
                 <!-- Tipo de documento -->
                 <v-col cols="12" md="6">
                   <v-select
@@ -308,7 +338,15 @@ const formData = ref({
   description: '',
   type: '', 
   tags: [],
-  file: null
+  file: null,
+  security: {
+    accessLevel: 'Privado' // Valor por defecto
+  }
+});
+
+// Definir los niveles de acceso disponibles según el rol del usuario
+const accessLevels = computed(() => {
+  return documentsStore.getAccessLevels();
 });
 
 // Cargar datos iniciales
@@ -341,7 +379,10 @@ watch(document, (newDocument) => {
       description: newDocument.description || '',
       type: newDocument.documentType || null, 
       tags: newDocument.tags || [],
-      file: null
+      file: null,
+      security: {
+        accessLevel: newDocument.security?.accessLevel || 'Privado'
+      }
     };
   }
 }, { immediate: true });
@@ -389,12 +430,13 @@ async function submitForm() {
   const plainData = {
     title: formData.value.title,
     description: formData.value.description || '',
-    // Mapear correctamente el documentTypeId
-    documentTypeId: (formData.value.type && typeof formData.value.type === 'object' && formData.value.type.id)
-      ? formData.value.type.id
-      : formData.value.type,
+    // Solo incluir documentTypeId si tenemos un ID válido
+    ...(formData.value.type && typeof formData.value.type === 'object' && formData.value.type.id
+      ? { documentTypeId: formData.value.type.id }
+      : {}), // No incluir documentTypeId si no tenemos un ID válido
     tags: formData.value.tags ? formData.value.tags.map(tag => tag.name || tag) : [],
-    file: formData.value.file || null
+    file: formData.value.file || null,
+    security: formData.value.security
   };
   // Log de los datos enviados
   console.log('Datos enviados al store (plainData):', plainData);
@@ -416,7 +458,10 @@ function resetForm() {
       description: document.value.description || '',
       type: document.value.type ? document.value.type.name : null,
       tags: document.value.tags || [],
-      file: null
+      file: null,
+      security: {
+        accessLevel: document.value.security?.accessLevel || 'Privado'
+      }
     };
   }
   
@@ -512,6 +557,39 @@ function showSuccess(text) {
     color: 'success',
     timeout: 3000
   };
+}
+
+// Funciones para el selector de nivel de acceso
+function getSecurityLevelColor(level) {
+  return documentsStore.getSecurityLevelColor(level);
+}
+
+function getSecurityLevelIcon(level) {
+  switch (level) {
+    case 'Publico':
+      return 'mdi-earth';
+    case 'Limitado':
+      return 'mdi-account-group-outline';
+    case 'Confidencial':
+      return 'mdi-shield-lock-outline';
+    case 'Privado':
+    default:
+      return 'mdi-lock-outline';
+  }
+}
+
+function getSecurityLevelDescription(level) {
+  switch (level) {
+    case 'Publico':
+      return 'Accesible para todos los usuarios';
+    case 'Limitado':
+      return 'Accesible para grupos específicos';
+    case 'Confidencial':
+      return 'Accesible solo para personal autorizado';
+    case 'Privado':
+    default:
+      return 'Accesible solo para el autor y administradores';
+  }
 }
 
 function showError(text) {

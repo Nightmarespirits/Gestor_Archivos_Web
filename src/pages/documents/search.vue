@@ -293,7 +293,7 @@ const searchResults = ref([]);
 const page = ref(1); // Vuetify usa paginación basada en 1
 const itemsPerPage = ref(10);
 const totalItems = ref(0);
-const sortBy = ref([{ key: 'id', order: 'asc' }]);
+const sortBy = ref([{ key: 'uploadDate', order: 'desc' }]);
 
 // Columnas de la tabla
 const headers = [
@@ -344,8 +344,8 @@ async function handleTableOptionsUpdate(options) {
   if (options.sortBy && options.sortBy.length > 0) {
     sortBy.value = options.sortBy;
   } else {
-    // Valor por defecto: ordenar por ID ascendente
-    sortBy.value = [{ key: 'id', order: 'asc' }];
+    // Valor por defecto: ordenar por fecha de subida descendente (más recientes primero)
+    sortBy.value = [{ key: 'uploadDate', order: 'desc' }];
   }
   
   // Cargar datos con las nuevas opciones

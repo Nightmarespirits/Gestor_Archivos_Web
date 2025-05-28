@@ -1,6 +1,16 @@
 <template>
-  <v-footer app class="pa-3 text-center d-flex flex-column" style="font-size: 0.8em;">
-    <span>&copy; {{ new Date().getFullYear() }} IESTPFFAA - Todos los derechos reservados</span>
+  <v-footer app class="pa-3 text-center d-flex flex-column modern-footer" style="font-size: 0.9em;">
+    <span>
+       {{ new Date().getFullYear() }} IESTPFFAA &copy; Made by
+      <a
+        href="https://github.com/NightmareSpirits"
+        target="_blank"
+        rel="noopener"
+        class="footer-link"
+      >
+        NightmareSpirits
+      </a>
+    </span>
   </v-footer>
 </template>
 
@@ -9,7 +19,13 @@
 </script>
 
 <style scoped>
-.v-footer {
-  justify-content: center;
+.footer-link {
+  text-decoration: none;
+  font-weight: bold;
+  transition: color 0.2s;
+}
+.footer-link:hover {
+  color: #0770a0;
+  text-decoration: underline;
 }
 </style>

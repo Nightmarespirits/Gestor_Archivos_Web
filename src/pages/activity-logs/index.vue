@@ -101,7 +101,7 @@
                 {{ formatDate(item.timestamp) }}
               </template>
               <template v-slot:item.user="{ item }">
-                {{ item.user.username }}
+                {{ item.username }}
               </template>
             </v-data-table>
 

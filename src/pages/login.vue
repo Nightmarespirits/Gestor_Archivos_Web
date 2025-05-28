@@ -34,6 +34,18 @@
           color="primary"
           :rules="[v => !!v || 'La contraseña es requerida']"
         ></v-text-field>
+        <!-- Mensaje de error para credenciales inválidas -->
+        <v-alert
+          v-if="errorMessage"
+          type="error"
+          density="compact"
+          class="mb-4"
+          variant="tonal"
+          closable
+          @click:close="errorMessage = ''"
+        >
+          {{ errorMessage }}
+        </v-alert>
         <v-btn 
           color="primary" 
           block 
@@ -61,6 +73,7 @@ const password = ref('');
 const loading = ref(false);
 const showPassword = ref(false);
 const showErrors = ref(false);
+const errorMessage = ref(''); // Variable para el mensaje de error
 
 // Forzar tema claro en login
 const themeInstance = useTheme();
@@ -77,6 +90,9 @@ onBeforeUnmount(() => {
 
 async function handleLogin() {
   showErrors.value = true;
+  // Limpiar mensaje de error previo
+  errorMessage.value = '';
+  
   if (!username.value || !password.value) {
     loading.value = false;
     return;
@@ -88,10 +104,19 @@ async function handleLogin() {
       username: username.value, 
       password: password.value 
     });
-    
+
     // La redirección se maneja dentro del store
-  } catch (err) {
-    error.value = err?.message || 'Ocurrió un error inesperado.';
+  } catch (error) {
+    console.error('Error de login:', error);
+    
+    // Verificar si es un error de credenciales inválidas (401)
+    if (error?.message?.includes('401') || 
+        error?.message?.includes('Invalid credentials') || 
+        error?.message?.toLowerCase().includes('credenciales')) {
+      errorMessage.value = 'Credenciales inválidas. Por favor, verifique su usuario y contraseña.';
+    } else {
+      errorMessage.value = error?.message || 'Ocurrió un error inesperado al iniciar sesión.';
+    }
     
     // Asegurarse de que el botón de login se habilite nuevamente
     setTimeout(() => {

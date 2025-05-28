@@ -295,6 +295,8 @@ async function submitForm() {
     }
     
     // Enviar datos al servidor
+    console.log("Datos enviados a la api: ", JSON.stringify(formData.value.security));
+
     const newDocument = await documentsStore.createDocument(formDataToSend);
     
     showSuccess('Documento creado correctamente.');

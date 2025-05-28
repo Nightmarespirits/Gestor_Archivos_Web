@@ -3,6 +3,8 @@ package com.ns.iestpffaaarchives.infrastructure.web.controller;
 import com.ns.iestpffaaarchives.application.service.UserService;
 import com.ns.iestpffaaarchives.domain.entity.ActivityLog;
 import com.ns.iestpffaaarchives.domain.entity.User;
+import com.ns.iestpffaaarchives.infrastructure.web.dto.ActivityLogDTO;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -91,9 +94,14 @@ public class ActivityLogController {
     
     @GetMapping
     @PreAuthorize("hasAuthority('AUDIT_LOG_VIEW')")
-    public ResponseEntity<List<ActivityLog>> getAllActivityLogs() {
+    public ResponseEntity<List<ActivityLogDTO>> getAllActivityLogs() {
         List<ActivityLog> activityLogs = activityLogService.getAllActivityLogs();
-        return ResponseEntity.ok(activityLogs);
+        // Convertir las entidades a DTOs
+        List<ActivityLogDTO> dtos = activityLogs.stream()
+            .map(ActivityLogDTO::new)
+            .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
     }
     
     @GetMapping("/paged")

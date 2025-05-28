@@ -212,7 +212,7 @@ const recentDocuments = ref([]);
 // Encabezados para la tabla de actividades
 const activityHeaders = [
   { title: 'Acción', key: 'actionType', align: 'center', width: '150' },
-  { title: 'Usuario', key: 'user', align: 'center', width: '150' },
+  { title: 'Usuario', key: 'username', align: 'center', width: '150' },
   { 
     title: 'Fecha', 
     key: 'timestamp', 

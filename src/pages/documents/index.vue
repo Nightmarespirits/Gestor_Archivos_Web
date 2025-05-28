@@ -37,6 +37,7 @@
           :search="search"
           :loading="documentsStore.loading"
           :items-per-page="10"
+          :sort-by="[{key: 'uploadDate', order: 'desc'}]"
           class="elevation-1"
           hover
           :no-data-text="'No se encontraron documentos'"

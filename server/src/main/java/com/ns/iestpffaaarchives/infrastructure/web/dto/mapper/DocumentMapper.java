@@ -5,6 +5,8 @@ import com.ns.iestpffaaarchives.domain.entity.Tag;
 import com.ns.iestpffaaarchives.infrastructure.web.dto.DocumentDTO;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import java.util.HashSet;
 import java.util.ArrayList;
@@ -46,6 +48,19 @@ public class DocumentMapper {
                 .collect(Collectors.toSet()) :
             new HashSet<>();
         dto.setTags(tagNames);
+        
+        // Agregar información de seguridad
+        if (document.getSecurity() != null) {
+            Map<String, Object> securityMap = new HashMap<>();
+            securityMap.put("accessLevel", document.getSecurity().getAccessLevel());
+            // Se pueden añadir más campos de seguridad si es necesario
+            dto.setSecurity(securityMap);
+        } else {
+            // Si no hay información de seguridad, establecer un valor predeterminado
+            Map<String, Object> securityMap = new HashMap<>();
+            securityMap.put("accessLevel", "Privado");
+            dto.setSecurity(securityMap);
+        }
         
         return dto;
     }

@@ -25,6 +25,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
+import com.ns.iestpffaaarchives.domain.entity.DocumentSecurity;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -190,6 +193,7 @@ public class DocumentController {
         return ResponseEntity.ok(dtos);
     }
 
+    @SuppressWarnings("unchecked")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('DOCUMENT_CREATE')")
     public ResponseEntity<?> createDocument(
@@ -198,7 +202,8 @@ public class DocumentController {
             @RequestParam("description") String description,
             @RequestParam("authorId") Long authorId,
             @RequestParam("type") String type,
-            @RequestParam(value = "tags", required = false) List<String> tagNames) {
+            @RequestParam(value = "tags", required = false) List<String> tagNames,
+            @RequestParam(value = "security", required = false) String securityJson) {
         
         // Validar archivo
         if (file.isEmpty()) {
@@ -271,6 +276,36 @@ public class DocumentController {
             document.setAuthor(authorOptional.get());
             document.setType(documentType.get());
             document.setTags(tags);
+
+            // Procesar la información de seguridad
+            if (securityJson != null && !securityJson.isEmpty()) {
+                try {
+                    // Usar Jackson para parsear el JSON
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    Map<String, Object> securityMap = objectMapper.readValue(securityJson, Map.class);
+                    
+                    // Crear o actualizar el objeto de seguridad
+                    DocumentSecurity security = new DocumentSecurity();
+                    
+                    // Verificar si hay un nivel de acceso especificado
+                    if (securityMap.containsKey("accessLevel")) {
+                        String accessLevel = (String) securityMap.get("accessLevel");
+                        security.setAccessLevel(accessLevel);
+                    } else {
+                        security.setAccessLevel("Privado"); // Valor por defecto
+                        logger.info("Nivel de acceso establecido por defecto: {}", security.getAccessLevel());
+                    }
+                    
+                    security.setDocument(document);
+                    document.setSecurity(security);
+                    
+                    logger.info("Nivel de acceso establecido: {}", security.getAccessLevel());
+
+                } catch (Exception e) {
+                    logger.error("Error al procesar JSON de seguridad: {}", e.getMessage(), e);
+                    // En caso de error, el servicio se encargará de asignar el nivel predeterminado
+                }
+            }
             
             Document savedDocument = documentService.createDocument(document);
             
@@ -332,7 +367,9 @@ public class DocumentController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "documentTypeId", required = false) Long documentTypeId,
             @RequestParam(value = "tags", required = false) List<String> tagNames,
-            @RequestParam(value = "file", required = false) MultipartFile file) {
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "security", required = false) String securityJson) {
+        
         logger.info("[updateDocument] Solicitud de actualización para documento id={}", id);
         Optional<Document> documentOptional = documentService.getDocumentById(id);
         if (documentOptional.isEmpty()) {
@@ -362,6 +399,31 @@ public class DocumentController {
                 })
                 .collect(Collectors.toSet());
             document.setTags(tags);
+        }
+
+        // Procesar información de seguridad si se proporciona
+        if (securityJson != null && !securityJson.isEmpty()) {
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                @SuppressWarnings("unchecked")
+                Map<String, Object> securityMap = objectMapper.readValue(securityJson, Map.class);
+                
+                // Actualizar o crear el objeto de seguridad
+                DocumentSecurity security = document.getSecurity();
+                if (security == null) {
+                    security = new DocumentSecurity();
+                    security.setDocument(document);
+                    document.setSecurity(security);
+                }
+                
+                if (securityMap.containsKey("accessLevel")) {
+                    String accessLevel = (String) securityMap.get("accessLevel");
+                    security.setAccessLevel(accessLevel);
+                    logger.info("[updateDocument] Nivel de acceso actualizado a: {}", accessLevel);
+                }
+            } catch (Exception e) {
+                logger.error("[updateDocument] Error al procesar JSON de seguridad: {}", e.getMessage(), e);
+            }
         }
         try {
             Document updatedDocument = documentService.updateDocumentWithVersioning(document, file, uploadDir);

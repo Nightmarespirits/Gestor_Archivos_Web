@@ -219,11 +219,12 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocumentById(id) {
     try {
       loading.value = true;
-      const data = await api.get(`/documents/${id}`);
-      currentDocument.value = data;
-      return data;
+      const document = await api.get(`/documents/${id}`, { debug: true });
+      currentDocument.value = document;
+      return document;
     } catch (err) {
       error.value = err.message;
+      console.error('fetchDocumentById Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -234,39 +235,43 @@ export const useDocumentsStore = defineStore('documents', () => {
     try {
       loading.value = true;
       
-      // Si documentData ya es un FormData, usarlo directamente
-      const formData = documentData instanceof FormData ? documentData : new FormData();
+      // Crear un FormData para enviar los datos multipart
+      const formData = new FormData();
       
-      // Si no es FormData, crear uno nuevo (mantener compatibilidad con código existente)
-      if (!(documentData instanceof FormData)) {
-        Object.keys(documentData).forEach(key => {
-          if (key === 'file') {
-            formData.append('file', documentData.file);
-          } else if (key === 'tags' && Array.isArray(documentData.tags)) {
-            documentData.tags.forEach(tag => {
-              formData.append('tags', tag);
-            });
-            //formData.append('tags', JSON.stringify(documentData.tags));
-          } else if (key === 'security') {
-            // Manejar objeto security específicamente
-            if (documentData.security && documentData.security.accessLevel) {
-              const securityJson = JSON.stringify(documentData.security);
-              formData.append('security', securityJson);
-            }
-          } else {
-            formData.append(key, documentData[key]);
-          }
+      // Agregar datos básicos
+      formData.append('title', documentData.title);
+      formData.append('description', documentData.description || '');
+      
+      // Agregar tipo de documento
+      if (documentData.documentTypeId) {
+        formData.append('documentTypeId', documentData.documentTypeId);
+      }
+      
+      // Agregar etiquetas (cada una como un item separado)
+      if (documentData.tags && Array.isArray(documentData.tags)) {
+        documentData.tags.forEach(tag => {
+          formData.append('tags', tag);
         });
       }
       
-      // Asegurarse de que siempre haya un nivel de acceso por defecto si no se especificó
-      if (!formData.has('security.accessLevel')) {
-        formData.append('security.accessLevel', 'Privado');
+      // Agregar archivo
+      if (documentData.file) {
+        formData.append('file', documentData.file);
       }
-
+      
+      // Configuración de seguridad
+      if (documentData.security) {
+        formData.append('security', JSON.stringify(documentData.security));
+      }
+      
+      console.log('Enviando documento a la API...');
+      
       const newDocument = await api.post('/documents', formData, {
-        isFormData: true
+        isFormData: true,
+        debug: true,
       });
+      
+      console.log('Documento creado:', newDocument);
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
@@ -274,10 +279,11 @@ export const useDocumentsStore = defineStore('documents', () => {
         `Documento "${newDocument.title}" creado`,
         newDocument.id
       );
-
+      
       return newDocument;
     } catch (err) {
       error.value = err.message;
+      console.error('createDocument Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -299,16 +305,17 @@ export const useDocumentsStore = defineStore('documents', () => {
               formData.append('file', documentData.file);
             }
           } else if (key === 'tags' && Array.isArray(documentData.tags)) {
+            // CORRECCIÓN: Agregar cada tag como un elemento independiente en la lista
+            // en lugar de JSON.stringify que causa problemas con el controlador
             documentData.tags.forEach(tag => {
               formData.append('tags', tag);
             });
-            //formData.append('tags', JSON.stringify(documentData.tags));
           } else if (key === 'security') {
-            // Manejar objeto security específicamente
-            if (documentData.security && documentData.security.accessLevel) { 
+            // CORRECCIÓN: Manejar objeto security como JSON string completo
+            // para que el controlador lo reciba correctamente
+            if (documentData.security && documentData.security.accessLevel) {
               const securityJson = JSON.stringify(documentData.security);
               formData.append('security', securityJson);
-              //formData.append('security.accessLevel', documentData.security.accessLevel);
             }
           } else {
             formData.append(key, documentData[key]);
@@ -316,13 +323,20 @@ export const useDocumentsStore = defineStore('documents', () => {
         });
       }
       
-      // Asegurarse de que siempre haya un nivel de acceso por defecto si no se especificó
+      // Ya no necesitamos esto porque ahora enviamos 'security' como JSON
+      // Eliminar este bloque que intentaba manejar 'security.accessLevel' por separado
+      /* 
       if (!formData.has('security.accessLevel') && currentDocument.value && currentDocument.value.security) {
-        // Mantener el nivel actual si existe
         formData.append('security.accessLevel', currentDocument.value.security.accessLevel);
       } else if (!formData.has('security.accessLevel')) {
-        // Nivel por defecto
         formData.append('security.accessLevel', 'Privado');
+      }
+      */
+
+      // Asegurarse de que siempre haya un nivel de acceso por defecto si no se especificó
+      if (!formData.has('security') && currentDocument.value && currentDocument.value.security) {
+        // Mantener el nivel actual si existe
+        formData.append('security', JSON.stringify(currentDocument.value.security));
       }
 
       const updatedDocument = await api.put(`/documents/${id}`, formData, {
@@ -349,21 +363,27 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function deleteDocument(id) {
     try {
       loading.value = true;
-      const document = await fetchDocumentById(id);
+      const document = currentDocument.value;
       
-      await api.delete(`/documents/${id}`);
+      await api.delete(`/documents/${id}`, { debug: true });
       
       // Registrar la actividad
       await activityLogsStore.createActivityLog(
         'DELETE_DOCUMENT',
-        `Documento "${document.title}" eliminado`,
+        `Documento "${document?.title || id}" eliminado`,
         id
       );
-
-      await fetchDocuments(); // Actualizar lista
+      
+      // Eliminar el documento del array local
+      documents.value = documents.value.filter(doc => doc.id !== id);
+      if (currentDocument.value && currentDocument.value.id === id) {
+        currentDocument.value = null;
+      }
+      
       return true;
     } catch (err) {
       error.value = err.message;
+      console.error('deleteDocument Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -374,42 +394,58 @@ export const useDocumentsStore = defineStore('documents', () => {
     try {
       loading.value = true;
       
-      // Primero obtener los datos del documento si no están disponibles
-      let documentData = currentDocument.value;
-      if (!documentData || documentData.id !== id) {
-        await fetchDocumentById(id);
-        documentData = currentDocument.value;
+      // Obtener enlace para descargar el archivo
+      const downloadUrl = getDocumentDownloadUrl(id);
+      
+      // Intentar descargar con la API de apiService para manejar auth
+      try {
+        const response = await apiService.get(downloadUrl, {
+          responseType: 'blob',
+          debug: true
+        });
+        
+        // Crear un blob y un URL para descargarlo
+        const blob = new Blob([response.data], { 
+          type: response.headers['content-type'] || 'application/octet-stream' 
+        });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Obtener nombre de archivo del header o usar ID
+        let filename = 'document.pdf';
+        const contentDisposition = response.headers['content-disposition'];
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1];
+          }
+        }
+        
+        // Crear enlace de descarga y simular clic
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Registrar la actividad
+        await activityLogsStore.createActivityLog(
+          'DOWNLOAD_DOCUMENT',
+          `Documento ID=${id} descargado`,
+          id
+        );
+        
+        return true;
+      } catch (err) {
+        console.error('Error al descargar usando API:', err);
+        // Falló la descarga con API, intentar con enlace directo
+        window.open(downloadUrl, '_blank');
+        return true;
       }
-      
-      // Usar fetch directamente para obtener el blob
-      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, { 
-        method: 'GET',
-        headers: apiService.getAuthHeaders(false)
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-      
-      // Registrar la actividad de descarga
-      await activityLogsStore.createActivityLog(
-        'DOWNLOAD_DOCUMENT',
-        `Documento "${documentData.title}" descargado`,
-        id
-      );
-      
-      // Procesar la descarga del archivo
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = documentData.title || 'documento';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-      
-      return true;
     } catch (err) {
       error.value = err.message;
+      console.error('downloadDocument Error:', err);
       throw err;
     } finally {
       loading.value = false;
@@ -419,38 +455,49 @@ export const useDocumentsStore = defineStore('documents', () => {
   // Función para obtener la URL de previsualización del documento
   async function getFilePreview(id) {
     try {
-      loading.value = true;
-
+      // Verificar si ya tenemos una URL en caché
       if (previewCache.has(id)) {
         return previewCache.get(id);
       }
-
-      const response = await fetch(`${API_BASE_URL}/documents/download/${id}`, {
-        method: 'GET',
-        headers: apiService.getAuthHeaders(false)
-      });
-
-      if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}`);
-
-      const blob = await response.blob();
-      const mimeType = blob.type || response.headers.get('content-type') || 'application/octet-stream';
-      const url = URL.createObjectURL(blob);
-
-      const previewData = { url, mimeType };
-      previewCache.set(id, previewData);
-      return previewData;
+      
+      loading.value = true;
+      
+      const previewUrl = `${API_BASE_URL}/documents/preview/${id}`;
+      
+      try {
+        // Obtener el archivo como blob
+        const response = await apiService.get(previewUrl, {
+          responseType: 'blob',
+          debug: true
+        });
+        
+        // Crear un blob URL para mostrar en el componente
+        const blob = new Blob([response.data], { 
+          type: response.headers['content-type'] || 'application/pdf' 
+        });
+        const url = window.URL.createObjectURL(blob);
+        
+        // Guardar en caché
+        previewCache.set(id, url);
+        
+        return url;
+      } catch (err) {
+        console.error('Error al obtener vista previa:', err);
+        return null;
+      }
     } catch (err) {
-      error.value = err.message;
-      throw err;
+      console.error('getFilePreview Error:', err);
+      return null;
     } finally {
       loading.value = false;
     }
   }
 
+  // Liberar recursos de URL cuando ya no se necesiten
   function revokePreviewUrl(id) {
-    const cached = previewCache.get(id);
-    if (cached) {
-      URL.revokeObjectURL(cached.url);
+    if (previewCache.has(id)) {
+      const url = previewCache.get(id);
+      window.URL.revokeObjectURL(url);
       previewCache.delete(id);
     }
   }
@@ -458,12 +505,14 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchDocumentTypes() {
     try {
       loading.value = true;
-      const response = await api.get('/document-types');
-      documentTypes.value = response;
-      return response;
+      const data = await api.get('/documents/types', { debug: true });
+      documentTypes.value = data || [];
+      return documentTypes.value;
     } catch (err) {
       error.value = err.message;
-      throw err;
+      console.error('fetchDocumentTypes Error:', err);
+      documentTypes.value = [];
+      return [];
     } finally {
       loading.value = false;
     }
@@ -472,12 +521,14 @@ export const useDocumentsStore = defineStore('documents', () => {
   async function fetchTags() {
     try {
       loading.value = true;
-      const response = await api.get('/tags');
-      tags.value = response;
-      return response;
+      const data = await api.get('/documents/tags', { debug: true });
+      tags.value = data || [];
+      return tags.value;
     } catch (err) {
       error.value = err.message;
-      throw err;
+      console.error('fetchTags Error:', err);
+      tags.value = [];
+      return [];
     } finally {
       loading.value = false;
     }
@@ -491,11 +542,10 @@ export const useDocumentsStore = defineStore('documents', () => {
     error,
     documentTypes,
     tags,
-    previewCache,
     accessLevels,
     pagination,
     sortOptions,
-
+    
     // Getters
     getDocuments,
     getCurrentDocument,
@@ -503,10 +553,9 @@ export const useDocumentsStore = defineStore('documents', () => {
     getError,
     getDocumentTypes,
     getTags,
-    getDocumentDownloadUrl,
     getAccessLevels,
     getSecurityLevelColor,
-
+    
     // Actions
     fetchDocuments,
     fetchPaginatedDocuments,
@@ -516,6 +565,7 @@ export const useDocumentsStore = defineStore('documents', () => {
     updateDocument,
     deleteDocument,
     downloadDocument,
+    getDocumentDownloadUrl,
     getFilePreview,
     revokePreviewUrl,
     fetchDocumentTypes,
