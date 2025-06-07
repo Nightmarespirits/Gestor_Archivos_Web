@@ -4,6 +4,7 @@ import com.ns.iestpffaaarchives.domain.entity.User;
 import com.ns.iestpffaaarchives.domain.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -55,5 +56,9 @@ public class UserService {
 
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
+    }
+
+    public User getCurrentUser() {
+        return userRepository.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName()).orElse(null);
     }
 }

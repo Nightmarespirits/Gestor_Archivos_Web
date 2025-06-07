@@ -7,7 +7,9 @@ import { PERMISSIONS } from '@/helpers/permissionsHelper';
 import { documentRoutes } from './documentRoutes';
 import { userRoutes } from './userRoutes';
 import { ROLES } from '@/helpers/rolesHelper';
-  
+import { inventoryRoutes } from './inventoryRoutes';
+import { catalogoTransferenciaRoutes } from './catalogo-transferenciaRoutes';
+import {registroTransferenciaRoutes } from './registro-transferenciaRoutes';
 const routes = [
     {
         path:'/',
@@ -39,6 +41,9 @@ const routes = [
                 component: () => import('@/pages/tags-types/index.vue'),
                 meta: { requiredPermissions: [PERMISSIONS.TAG_MANAGE, PERMISSIONS.TYPE_MANAGE] } 
             },
+            inventoryRoutes,
+            catalogoTransferenciaRoutes,
+            registroTransferenciaRoutes,
             {
                 path: 'test', 
                 component: () => import('@/components/examples/ActionButtonsExample.vue'),

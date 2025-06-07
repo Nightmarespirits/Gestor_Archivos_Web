@@ -58,7 +58,40 @@
         value="documents" 
         to="/documents">
       </v-list-item>
-
+      <!-- Control de Transferencia Documental - Visible principalmente para administración -->
+      <v-list-group
+        v-if="hasAdminAccess"
+        value="transferencia"
+      >
+        <template v-slot:activator="{ props }">
+          <v-list-item
+            v-bind="props"
+            prepend-icon="mdi-file-move-outline"
+            title="Transferencia Documental"
+          ></v-list-item>
+        </template>
+        
+        <v-list-item
+          prepend-icon="mdi-view-list-outline"
+          title="Inventario General"
+          value="inventario_general"
+          to="/inventarios"
+        ></v-list-item>
+        
+        <v-list-item
+          prepend-icon="mdi-file-document-multiple-outline"
+          title="Registro de Transferencia"
+          value="registro_transferencia"
+          to="/registro-transferencia"
+        ></v-list-item>
+        
+        <v-list-item
+          prepend-icon="mdi-bookshelf"
+          title="Catálogo Transferencia"
+          value="catalogo_transferencia"
+          to="/catalogo-transferencia"
+        ></v-list-item>
+      </v-list-group>
       <!-- Etiquetas y Tipos - Visible principalmente para administración -->
       <v-list-item 
         v-if="hasAdminAccess" 

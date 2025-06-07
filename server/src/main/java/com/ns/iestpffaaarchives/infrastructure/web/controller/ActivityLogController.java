@@ -29,6 +29,7 @@ interface ActivityLogRepository extends JpaRepository<ActivityLog, Long> {
     List<ActivityLog> findByUser(User user);
     List<ActivityLog> findByActionType(String actionType);
     List<ActivityLog> findByTimestampBetween(LocalDateTime start, LocalDateTime end);
+    @SuppressWarnings("null")
     Page<ActivityLog> findAll(Pageable pageable);
 }
 
