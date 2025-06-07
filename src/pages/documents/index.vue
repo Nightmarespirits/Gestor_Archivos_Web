@@ -4,7 +4,15 @@
       <v-col cols="8">
         <h1 class="text-h4">Gestión de Documentos</h1>
       </v-col>
-      <v-col cols="4" class="d-flex justify-end">
+      <v-col cols="4" class="d-flex justify-end gap-2">
+        <PermissionButton 
+          :permissions="['DOCUMENT_READ']"
+          color="success" 
+          prepend-icon="mdi-file-excel" 
+          @click="showReportDialog"
+        >
+          Generar Reporte
+        </PermissionButton>
         <PermissionButton 
           :permissions="['DOCUMENT_CREATE']"
           color="primary" 
@@ -123,6 +131,13 @@
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout">
       {{ snackbar.text }}
     </v-snackbar>
+
+    <!-- Diálogo de generación de reportes -->
+    <ReportDialog
+      :show="reportDialogOpen"
+      @close="reportDialogOpen = false"
+      @generate="generateExcelReport"
+    />
   </div>
 </template>
 
@@ -131,12 +146,26 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useDocumentsStore } from '@/store/documents';
 import PermissionButton from '@/components/common/PermissionButton.vue';
+import ReportDialog from '@/components/documents/ReportDialog.vue';
+import { reportService } from '@/services/reportService';
 
 const router = useRouter();
 const documentsStore = useDocumentsStore();
 
-// Variable para búsqueda
+// Cargar los documentos cuando se monte el componente
+onMounted(async () => {
+  try {
+    await documentsStore.fetchDocuments();
+    console.log('Documentos cargados:', documentsStore.documents);
+  } catch (error) {
+    console.error('Error al cargar documentos:', error);
+    showSnackbar('Error al cargar documentos', 'error');
+  }
+});
+
+// Variables
 const search = ref('');
+const reportDialogOpen = ref(false);
 
 // Configuración de la tabla
 const headers = ref([
@@ -247,7 +276,59 @@ async function downloadDocument(document) {
 
 // Mostrar snackbar
 function showSnackbar(text, color = 'success', timeout = 3000) {
-  snackbar.value = { show: true, text, color, timeout };
+  snackbar.value.text = text;
+  snackbar.value.color = color;
+  snackbar.value.timeout = timeout;
+  snackbar.value.show = true;
+}
+
+/**
+ * Muestra el diálogo para generar reportes
+ */
+function showReportDialog() {
+  reportDialogOpen.value = true;
+}
+
+/**
+ * Genera un reporte Excel con los documentos
+ * @param {Object} options - Opciones de configuración del reporte
+ */
+async function generateExcelReport(options) {
+  try {
+    // Obtener documentos del store - convertirlos a un array simple (no reactivo)
+    // El JSON.parse(JSON.stringify()) elimina la reactividad y convierte el Proxy a un objeto normal
+    const documents = JSON.parse(JSON.stringify(documentsStore.documents || []));
+    
+    console.log('Documentos en el store (original):', documentsStore.documents);
+    console.log('Documentos procesados para el reporte:', documents);
+    console.log('Opciones de reporte:', options);
+    
+    // Si no hay documentos, no generar reporte
+    if (!documents || documents.length === 0) {
+      showSnackbar('No hay documentos para generar el reporte', 'warning');
+      return;
+    }
+    
+    // Generar nombre de archivo con fecha actual
+    const date = new Date();
+    const dateStr = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;
+    const fileName = `Reporte_Documentos_${dateStr}.xlsx`;
+    
+    // Generar el reporte
+    const excelBlob = await reportService.generateDocumentsExcelReport(
+      documents,
+      options
+    );
+    
+    // Descargar el archivo
+    reportService.downloadExcel(excelBlob, fileName);
+    
+    // Mostrar mensaje de éxito
+    showSnackbar('Reporte generado correctamente', 'success');
+  } catch (error) {
+    console.error('Error al generar reporte Excel:', error);
+    showSnackbar('Error al generar el reporte', 'error');
+  }
 }
 </script>
 
