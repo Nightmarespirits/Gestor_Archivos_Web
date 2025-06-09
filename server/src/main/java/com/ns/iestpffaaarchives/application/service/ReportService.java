@@ -3,7 +3,6 @@ package com.ns.iestpffaaarchives.application.service;
 import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
 
 import com.ns.iestpffaaarchives.domain.entity.Transfer;
-import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,11 +21,24 @@ public class ReportService {
     }
 
     @Transactional
-    public ReporteDocumentario generateReportForTransfer(Transfer transfer) {
+    public ReporteDocumentario saveReport(Transfer transfer, String reportType,
+                                          byte[] pdfContent, byte[] excelContent) {
         ReporteDocumentario reporte = new ReporteDocumentario();
-        reporte.setTransfer(transfer);
-        reporte.setTipo(TipoReporte.INVENTARIO);
-        reporte.setFechaGeneracion(LocalDateTime.now());
+        reporte.setTransferId(transfer != null ? transfer.getId() : null);
+        reporte.setReportType(reportType);
+        reporte.setPdfContent(pdfContent);
+        reporte.setExcelContent(excelContent);
+        reporte.setGeneratedAt(LocalDateTime.now());
         return reporteRepository.save(reporte);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] getPdfContent(Long id) {
+        return reporteRepository.findPdfContentById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] getExcelContent(Long id) {
+        return reporteRepository.findExcelContentById(id);
     }
 }
