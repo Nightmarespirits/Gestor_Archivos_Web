@@ -1,37 +1,41 @@
 package com.ns.iestpffaaarchives.domain.entity;
 
-import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
+/**
+ * Entity representing a generated report stored on disk.
+ */
 @Entity
-@Table(name = "reportes_documentarios")
-@Getter
-@Setter
+@Table(name = "reporte_documentario")
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(exclude = {"transfer"})
-@EqualsAndHashCode(of = {"id"})
 public class ReporteDocumentario {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "transfer_id")
-    private Transfer transfer;
 
-    @Enumerated(EnumType.STRING)
-    private TipoReporte tipo;
+    @Column(name = "transfer_id")
+    private Long transferId;
 
-    @Column(name = "fecha_generacion")
-    private LocalDateTime fechaGeneracion;
+    @Column(name = "report_type", nullable = false)
+    private String reportType;
 
-    @Lob
-    private byte[] pdf;
+    @Column(name = "file_path", nullable = false)
+    private String filePath;
 
-    @Lob
-    private byte[] excel;
+    @Column(name = "generated_at", nullable = false)
+    private LocalDateTime generatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        generatedAt = LocalDateTime.now();
+    }
 }
