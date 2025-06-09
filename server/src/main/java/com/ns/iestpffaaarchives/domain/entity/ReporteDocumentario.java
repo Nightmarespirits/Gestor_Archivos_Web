@@ -21,6 +21,7 @@ public class ReporteDocumentario {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+
     @Column(name = "transfer_id")
     private Long transferId;
 
