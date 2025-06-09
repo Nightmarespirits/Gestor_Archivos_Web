@@ -10,6 +10,7 @@ Esta documentación describe los endpoints disponibles en el sistema de gestión
 - [Etiquetas](#etiquetas)
 - [Metadatos](#metadatos)
 - [Registros de Actividad](#registros-de-actividad)
+- [Reportes](#reportes)
 - [Instrucciones de Uso](#instrucciones-de-uso)
 - [Consideraciones de Seguridad](#consideraciones-de-seguridad)
 - [Códigos de Error](#códigos-de-error)
@@ -775,6 +776,32 @@ Base URL: `/api/activity-logs`
 - **Respuesta Exitosa** (204 No Content)
 - **Respuestas de Error**:
   - 404 Not Found
+
+## Reportes
+
+### ReportController
+
+Base URL: `/api/reports`
+
+#### Descargar Reporte en PDF
+- **Endpoint**: `GET /api/reports/{id}/pdf`
+- **Descripción**: Descarga la versión PDF del reporte generado
+- **Parámetros de Ruta**:
+  - `id`: ID del reporte
+- **Respuesta Exitosa** (200 OK): Archivo PDF (`application/pdf`)
+- **Respuestas de Error**:
+  - 404 Not Found
+  - 500 Internal Server Error
+
+#### Descargar Reporte en Excel
+- **Endpoint**: `GET /api/reports/{id}/excel`
+- **Descripción**: Descarga la versión en Excel del reporte generado
+- **Parámetros de Ruta**:
+  - `id`: ID del reporte
+- **Respuesta Exitosa** (200 OK): Archivo Excel (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+- **Respuestas de Error**:
+  - 404 Not Found
+  - 500 Internal Server Error
 
 ## Instrucciones de Uso
 
