@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 
 import java.time.LocalDateTime;
 
@@ -23,11 +24,13 @@ public class ReporteDocumentario {
     private Long id;
 
 
-    @Column(name = "transfer_id")
-    private Long transferId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_id")
+    private Transfer transferencia;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "report_type", nullable = false)
-    private String reportType;
+    private TipoReporte tipoReporte;
 
     @Column(name = "file_path", nullable = false)
     private String filePath;

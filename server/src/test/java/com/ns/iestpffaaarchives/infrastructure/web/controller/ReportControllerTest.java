@@ -4,6 +4,7 @@ import com.ns.iestpffaaarchives.application.service.ReportService;
 import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
 import com.ns.iestpffaaarchives.domain.entity.Transfer;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
+import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +48,7 @@ class ReportControllerTest {
 
         byte[] pdf = {9,9};
         byte[] excel = {8,8};
-        ReporteDocumentario saved = reportService.saveReport(transfer, "SUMMARY", pdf, excel);
+        ReporteDocumentario saved = reportService.saveReport(transfer, TipoReporte.TRANSFERENCIA, pdf, excel);
         reportId = saved.getId();
     }
 
