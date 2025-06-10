@@ -1,15 +1,15 @@
 package com.ns.iestpffaaarchives.application.event;
 
-import com.ns.iestpffaaarchives.domain.entity.Transfer;
+import com.ns.iestpffaaarchives.domain.entity.TransferenciaDocumental;
 
 public class TransferCompletedEvent {
-    private final Transfer transfer;
+    private final TransferenciaDocumental transferencia;
 
-    public TransferCompletedEvent(Transfer transfer) {
-        this.transfer = transfer;
+    public TransferCompletedEvent(TransferenciaDocumental transferencia) {
+        this.transferencia = transferencia;
     }
 
-    public Transfer getTransfer() {
-        return transfer;
+    public TransferenciaDocumental getTransferencia() {
+        return transferencia;
     }
 }
