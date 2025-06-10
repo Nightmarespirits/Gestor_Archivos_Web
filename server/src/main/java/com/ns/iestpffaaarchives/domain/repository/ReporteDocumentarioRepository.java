@@ -14,7 +14,8 @@ import java.util.List;
  */
 @Repository
 public interface ReporteDocumentarioRepository extends JpaRepository<ReporteDocumentario, Long> {
-    List<ReporteDocumentario> findByTransferId(Long transferId);
+    @Query("SELECT r FROM ReporteDocumentario r WHERE r.transferencia.id = :transferId")
+    List<ReporteDocumentario> findByTransferenciaId(@Param("transferId") Long transferId);
 
     @Query("SELECT r.pdfContent FROM ReporteDocumentario r WHERE r.id = :id")
     byte[] findPdfContentById(@Param("id") Long id);

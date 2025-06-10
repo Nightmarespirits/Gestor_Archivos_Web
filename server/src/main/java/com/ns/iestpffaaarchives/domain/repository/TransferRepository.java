@@ -10,6 +10,6 @@ import java.util.List;
 @Repository
 public interface TransferRepository extends JpaRepository<Transfer, Long> {
 
-    @Query("SELECT t FROM Transfer t WHERE t.state = 'COMPLETADA' AND t.id NOT IN (SELECT r.transfer.id FROM ReporteDocumentario r)")
+    @Query("SELECT t FROM Transfer t WHERE t.state = 'COMPLETADA' AND t.id NOT IN (SELECT r.transferencia.id FROM ReporteDocumentario r)")
     List<Transfer> findCompletedTransfersWithoutReport();
 }

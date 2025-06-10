@@ -2,6 +2,7 @@ package com.ns.iestpffaaarchives.application.service;
 
 import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
 import com.ns.iestpffaaarchives.domain.entity.Transfer;
+import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -29,11 +30,11 @@ public class ReportService {
     }
 
     @Transactional
-    public ReporteDocumentario saveReport(Transfer transfer, String reportType,
+    public ReporteDocumentario saveReport(Transfer transfer, TipoReporte reportType,
                                           byte[] pdfContent, byte[] excelContent) {
         ReporteDocumentario reporte = new ReporteDocumentario();
-        reporte.setTransferId(transfer != null ? transfer.getId() : null);
-        reporte.setReportType(reportType);
+        reporte.setTransferencia(transfer);
+        reporte.setTipoReporte(reportType);
         reporte.setPdfContent(pdfContent);
         reporte.setExcelContent(excelContent);
         reporte.setGeneratedAt(LocalDateTime.now());
@@ -52,7 +53,7 @@ public class ReportService {
 
     /**
      * Generates PDF and Excel reports for a completed transfer and stores them
-     * using {@link #saveReport(Transfer, String, byte[], byte[])}.
+     * using {@link #saveReport(Transfer, TipoReporte, byte[], byte[])}.
      *
      * @param transfer Transfer for which the report will be generated
      * @return the persisted {@link ReporteDocumentario}
@@ -62,7 +63,7 @@ public class ReportService {
         try {
             byte[] pdf = createPdfReport(transfer);
             byte[] excel = createExcelReport(transfer);
-            return saveReport(transfer, "TRANSFER", pdf, excel);
+            return saveReport(transfer, TipoReporte.TRANSFERENCIA, pdf, excel);
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate report", e);
         }
