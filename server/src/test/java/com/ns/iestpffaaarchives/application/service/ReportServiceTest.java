@@ -46,5 +46,7 @@ class ReportServiceTest {
         assertThat(fromDb.getTipoReporte()).isEqualTo(TipoReporte.TRANSFERENCIA);
         assertThat(fromDb.getPdfContent()).containsExactly(pdf);
         assertThat(fromDb.getExcelContent()).containsExactly(excel);
+        assertThat(fromDb.getPdfSize()).isEqualTo(pdf.length);
+        assertThat(fromDb.getExcelSize()).isEqualTo(excel.length);
     }
 }

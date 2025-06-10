@@ -35,6 +35,12 @@ public class ReporteDocumentario {
     @Column(name = "file_path", nullable = false)
     private String filePath;
 
+    @Column(name = "pdf_size")
+    private Long pdfSize;
+
+    @Column(name = "excel_size")
+    private Long excelSize;
+
     @Lob
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "pdf_content")

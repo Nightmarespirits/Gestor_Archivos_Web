@@ -4,6 +4,8 @@ import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
 import com.ns.iestpffaaarchives.domain.entity.Transfer;
 import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
+import com.ns.iestpffaaarchives.domain.entity.TransferenciaDocumental;
+import com.ns.iestpffaaarchives.domain.entity.ItemTransferencia;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -15,9 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Service
 public class ReportService {
@@ -37,7 +39,13 @@ public class ReportService {
         reporte.setTipoReporte(reportType);
         reporte.setPdfContent(pdfContent);
         reporte.setExcelContent(excelContent);
-        reporte.setGeneratedAt(LocalDateTime.now());
+        if (pdfContent != null) {
+            reporte.setPdfSize((long) pdfContent.length);
+        }
+        if (excelContent != null) {
+            reporte.setExcelSize((long) excelContent.length);
+        }
+        reporte.setFilePath("DB");
         return reporteRepository.save(reporte);
     }
 
@@ -61,33 +69,65 @@ public class ReportService {
     @Transactional
     public ReporteDocumentario generateReportForTransfer(Transfer transfer) {
         try {
-            byte[] pdf = createPdfReport(transfer);
-            byte[] excel = createExcelReport(transfer);
+            byte[] pdf = createPdfReport(null, null);
+            byte[] excel = createExcelReport(null, null);
             return saveReport(transfer, TipoReporte.TRANSFERENCIA, pdf, excel);
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate report", e);
         }
     }
 
-    private byte[] createExcelReport(Transfer transfer) throws IOException {
+    public ReporteDocumentario generateReportForTransfer(TransferenciaDocumental transferencia,
+                                                          List<ItemTransferencia> items) {
+        try {
+            byte[] pdf = createPdfReport(transferencia, items);
+            byte[] excel = createExcelReport(transferencia, items);
+            return saveReport(null, TipoReporte.TRANSFERENCIA, pdf, excel);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate report", e);
+        }
+    }
+
+    private byte[] createExcelReport(TransferenciaDocumental transferencia,
+                                     List<ItemTransferencia> items) throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook();
              ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Sheet sheet = workbook.createSheet("Transfer");
+            Sheet sheet = workbook.createSheet("Transferencia");
 
             Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("ID");
-            header.createCell(1).setCellValue("Unit");
-            header.createCell(2).setCellValue("Section");
+            header.createCell(0).setCellValue("Entidad");
+            header.createCell(1).setCellValue("Unidad Organica");
+            header.createCell(2).setCellValue("Seccion");
 
             Row row = sheet.createRow(1);
-            if (transfer != null) {
-                if (transfer.getId() != null) {
-                    row.createCell(0).setCellValue(transfer.getId());
-                }
+            if (transferencia != null) {
+                row.createCell(0).setCellValue(
+                        transferencia.getEntidad() != null ? transferencia.getEntidad() : "");
                 row.createCell(1).setCellValue(
-                        transfer.getUnit() != null ? transfer.getUnit() : "");
+                        transferencia.getUnidadOrganica() != null ? transferencia.getUnidadOrganica() : "");
                 row.createCell(2).setCellValue(
-                        transfer.getSection() != null ? transfer.getSection() : "");
+                        transferencia.getSeccion() != null ? transferencia.getSeccion() : "");
+            }
+
+            int rowIdx = 3;
+            Row itemHeader = sheet.createRow(rowIdx++);
+            itemHeader.createCell(0).setCellValue("Codigo");
+            itemHeader.createCell(1).setCellValue("Descripcion");
+            itemHeader.createCell(2).setCellValue("Folios");
+            itemHeader.createCell(3).setCellValue("Fechas Extremas");
+            itemHeader.createCell(4).setCellValue("Ubicacion");
+            itemHeader.createCell(5).setCellValue("Observaciones");
+
+            if (items != null) {
+                for (ItemTransferencia it : items) {
+                    Row r = sheet.createRow(rowIdx++);
+                    r.createCell(0).setCellValue(it.getCodigo() != null ? it.getCodigo() : "");
+                    r.createCell(1).setCellValue(it.getDescripcion() != null ? it.getDescripcion() : "");
+                    r.createCell(2).setCellValue(it.getNumeroFolios() != null ? it.getNumeroFolios() : 0);
+                    r.createCell(3).setCellValue(it.getFechasExtremas() != null ? it.getFechasExtremas() : "");
+                    r.createCell(4).setCellValue(it.getUbicacionTopografica() != null ? it.getUbicacionTopografica() : "");
+                    r.createCell(5).setCellValue(it.getObservaciones() != null ? it.getObservaciones() : "");
+                }
             }
 
             workbook.write(out);
@@ -95,7 +135,8 @@ public class ReportService {
         }
     }
 
-    private byte[] createPdfReport(Transfer transfer) throws JRException, IOException {
+    private byte[] createPdfReport(TransferenciaDocumental transferencia,
+                                   List<ItemTransferencia> items) throws JRException, IOException {
         try (InputStream templateStream = getClass().getResourceAsStream("/reports/transfer_report.jrxml")) {
             if (templateStream == null) {
                 throw new IOException("Report template not found");
@@ -104,14 +145,15 @@ public class ReportService {
 
         Map<String, Object> params = new HashMap<>();
         StringBuilder content = new StringBuilder();
-        if (transfer != null) {
-            content.append("Transfer ID: ")
-                   .append(transfer.getId() != null ? transfer.getId() : "-");
-            if (transfer.getUnit() != null) {
-                content.append(" - Unit: ").append(transfer.getUnit());
-            }
-            if (transfer.getSection() != null) {
-                content.append(" - Section: ").append(transfer.getSection());
+        if (transferencia != null) {
+            content.append("Entidad: ").append(transferencia.getEntidad()).append("\n");
+            content.append("Unidad Organica: ").append(transferencia.getUnidadOrganica()).append("\n");
+            content.append("Seccion: ").append(transferencia.getSeccion()).append("\n");
+        }
+        if (items != null) {
+            for (ItemTransferencia it : items) {
+                content.append("Item ").append(it.getCodigo()).append(": ")
+                       .append(it.getDescripcion()).append("\n");
             }
         }
         params.put("content", content.toString());
