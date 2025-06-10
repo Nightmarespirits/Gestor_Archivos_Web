@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
+import com.ns.iestpffaaarchives.domain.entity.TransferenciaDocumental;
 
 import java.time.LocalDateTime;
 
@@ -25,8 +26,8 @@ public class ReporteDocumentario {
 
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transfer_id")
-    private Transfer transferencia;
+    @JoinColumn(name = "transferencia_documental_id")
+    private TransferenciaDocumental transferencia;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "report_type", nullable = false)
@@ -35,27 +36,30 @@ public class ReporteDocumentario {
     @Column(name = "file_path", nullable = false)
     private String filePath;
 
-    @Column(name = "pdf_size")
-    private Long pdfSize;
+    @Column(name = "tamanio_pdf")
+    private Long tamanioPdf;
 
-    @Column(name = "excel_size")
-    private Long excelSize;
-
-    @Lob
-    @Basic(fetch = FetchType.LAZY)
-    @Column(name = "pdf_content")
-    private byte[] pdfContent;
+    @Column(name = "tamanio_excel")
+    private Long tamanioExcel;
 
     @Lob
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "excel_content")
-    private byte[] excelContent;
+    @Column(name = "archivo_pdf")
+    private byte[] archivoPdf;
 
-    @Column(name = "generated_at", nullable = false)
-    private LocalDateTime generatedAt;
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "archivo_excel")
+    private byte[] archivoExcel;
+
+    @Column(name = "fecha_generacion", nullable = false)
+    private LocalDateTime fechaGeneracion;
+
+    @Column(name = "generado_por")
+    private String generadoPor;
 
     @PrePersist
     protected void onCreate() {
-        generatedAt = LocalDateTime.now();
+        fechaGeneracion = LocalDateTime.now();
     }
 }

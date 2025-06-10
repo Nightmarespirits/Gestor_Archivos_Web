@@ -2,7 +2,7 @@ package com.ns.iestpffaaarchives.infrastructure.web.controller;
 
 import com.ns.iestpffaaarchives.application.service.ReportService;
 import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
-import com.ns.iestpffaaarchives.domain.entity.Transfer;
+import com.ns.iestpffaaarchives.domain.entity.TransferenciaDocumental;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
 import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -38,17 +37,15 @@ class ReportControllerTest {
     @BeforeEach
     void setup() {
         repository.deleteAll();
-        Transfer transfer = new Transfer();
-        transfer.setId(5L);
-        transfer.setUnit("Unit");
-        transfer.setSection("Sec");
-        transfer.setTransferDate(LocalDateTime.now());
-        transfer.setState("COMPLETADA");
-        transfer.setDocuments(Collections.emptySet());
+        TransferenciaDocumental transferencia = new TransferenciaDocumental();
+        transferencia.setId(5L);
+        transferencia.setEntidad("Unit");
+        transferencia.setSeccion("Sec");
+        transferencia.setFechaTransferencia(LocalDateTime.now().toLocalDate());
 
         byte[] pdf = {9,9};
         byte[] excel = {8,8};
-        ReporteDocumentario saved = reportService.saveReport(transfer, TipoReporte.TRANSFERENCIA, pdf, excel);
+        ReporteDocumentario saved = reportService.saveReport(transferencia, TipoReporte.TRANSFERENCIA, pdf, excel);
         reportId = saved.getId();
     }
 

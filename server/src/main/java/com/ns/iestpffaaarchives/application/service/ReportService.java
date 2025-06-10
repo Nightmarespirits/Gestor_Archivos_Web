@@ -32,18 +32,19 @@ public class ReportService {
     }
 
     @Transactional
-    public ReporteDocumentario saveReport(Transfer transfer, TipoReporte reportType,
-                                          byte[] pdfContent, byte[] excelContent) {
+    public ReporteDocumentario saveReport(TransferenciaDocumental transferencia,
+                                          TipoReporte reportType,
+                                          byte[] archivoPdf, byte[] archivoExcel) {
         ReporteDocumentario reporte = new ReporteDocumentario();
-        reporte.setTransferencia(transfer);
+        reporte.setTransferencia(transferencia);
         reporte.setTipoReporte(reportType);
-        reporte.setPdfContent(pdfContent);
-        reporte.setExcelContent(excelContent);
-        if (pdfContent != null) {
-            reporte.setPdfSize((long) pdfContent.length);
+        reporte.setArchivoPdf(archivoPdf);
+        reporte.setArchivoExcel(archivoExcel);
+        if (archivoPdf != null) {
+            reporte.setTamanioPdf((long) archivoPdf.length);
         }
-        if (excelContent != null) {
-            reporte.setExcelSize((long) excelContent.length);
+        if (archivoExcel != null) {
+            reporte.setTamanioExcel((long) archivoExcel.length);
         }
         reporte.setFilePath("DB");
         return reporteRepository.save(reporte);
@@ -71,7 +72,7 @@ public class ReportService {
         try {
             byte[] pdf = createPdfReport(null, null);
             byte[] excel = createExcelReport(null, null);
-            return saveReport(transfer, TipoReporte.TRANSFERENCIA, pdf, excel);
+            return saveReport(null, TipoReporte.TRANSFERENCIA, pdf, excel);
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate report", e);
         }
@@ -82,7 +83,7 @@ public class ReportService {
         try {
             byte[] pdf = createPdfReport(transferencia, items);
             byte[] excel = createExcelReport(transferencia, items);
-            return saveReport(null, TipoReporte.TRANSFERENCIA, pdf, excel);
+            return saveReport(transferencia, TipoReporte.TRANSFERENCIA, pdf, excel);
         } catch (Exception e) {
             throw new RuntimeException("Failed to generate report", e);
         }
