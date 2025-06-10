@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "items_transferencia")
@@ -44,7 +45,7 @@ public class ItemTransferencia {
     private Integer cantidadUnidadArchivamiento;
 
     @Column(name = "volumen_metros_lineales")
-    private Double volumenMetrosLineales;
+    private BigDecimal volumenMetrosLineales;
 
     private String soporte;
 

@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.util.List;
+
 
 @Entity
 @Table(name = "transferencias_documentales")
@@ -17,6 +20,9 @@ public class TransferenciaDocumental {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @OneToMany(mappedBy = "transferencia")
+    private List<ItemTransferencia> items;
 
     private String entidad;
 
@@ -37,7 +43,7 @@ public class TransferenciaDocumental {
     private String soporte;
 
     @Column(name = "volumen_metros_lineales")
-    private Double volumenMetrosLineales;
+    private BigDecimal volumenMetrosLineales;
 
     private String responsable;
 
