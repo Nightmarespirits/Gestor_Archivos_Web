@@ -1,7 +1,6 @@
 package com.ns.iestpffaaarchives.application.service;
 
 import com.ns.iestpffaaarchives.domain.entity.ReporteDocumentario;
-import com.ns.iestpffaaarchives.domain.entity.Transfer;
 import com.ns.iestpffaaarchives.domain.enums.TipoReporte;
 import com.ns.iestpffaaarchives.domain.repository.ReporteDocumentarioRepository;
 import com.ns.iestpffaaarchives.domain.entity.TransferenciaDocumental;
@@ -10,8 +9,10 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.data.JRBeanCollectionDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.InputStream;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.List;
 
 @Service
+@Slf4j
 public class ReportService {
 
     private final ReporteDocumentarioRepository reporteRepository;
@@ -38,14 +40,13 @@ public class ReportService {
         ReporteDocumentario reporte = new ReporteDocumentario();
         reporte.setTransferencia(transferencia);
         reporte.setTipoReporte(reportType);
+        long pdfSize = archivoPdf != null ? archivoPdf.length : 0;
+        long excelSize = archivoExcel != null ? archivoExcel.length : 0;
+        log.info("PDF size: {} bytes, Excel size: {} bytes", pdfSize, excelSize);
         reporte.setArchivoPdf(archivoPdf);
         reporte.setArchivoExcel(archivoExcel);
-        if (archivoPdf != null) {
-            reporte.setTamanioPdf((long) archivoPdf.length);
-        }
-        if (archivoExcel != null) {
-            reporte.setTamanioExcel((long) archivoExcel.length);
-        }
+        reporte.setTamanioPdf(pdfSize != 0 ? pdfSize : null);
+        reporte.setTamanioExcel(excelSize != 0 ? excelSize : null);
         reporte.setFilePath("DB");
         return reporteRepository.save(reporte);
     }
@@ -138,29 +139,23 @@ public class ReportService {
 
     private byte[] createPdfReport(TransferenciaDocumental transferencia,
                                    List<ItemTransferencia> items) throws JRException, IOException {
-        try (InputStream templateStream = getClass().getResourceAsStream("/reports/transfer_report.jrxml")) {
+        try (InputStream templateStream = getClass().getResourceAsStream("/reports/transferencia_documental.jrxml")) {
             if (templateStream == null) {
                 throw new IOException("Report template not found");
             }
             JasperReport jasperReport = JasperCompileManager.compileReport(templateStream);
 
-        Map<String, Object> params = new HashMap<>();
-        StringBuilder content = new StringBuilder();
-        if (transferencia != null) {
-            content.append("Entidad: ").append(transferencia.getEntidad()).append("\n");
-            content.append("Unidad Organica: ").append(transferencia.getUnidadOrganica()).append("\n");
-            content.append("Seccion: ").append(transferencia.getSeccion()).append("\n");
-        }
-        if (items != null) {
-            for (ItemTransferencia it : items) {
-                content.append("Item ").append(it.getCodigo()).append(": ")
-                       .append(it.getDescripcion()).append("\n");
+            Map<String, Object> params = new HashMap<>();
+            if (transferencia != null) {
+                params.put("entidad", transferencia.getEntidad());
+                params.put("unidadOrganica", transferencia.getUnidadOrganica());
+                params.put("seccion", transferencia.getSeccion());
             }
-        }
-        params.put("content", content.toString());
 
-        JasperPrint print = JasperFillManager.fillReport(jasperReport, params, new JREmptyDataSource());
-        return JasperExportManager.exportReportToPdf(print);
+            JRBeanCollectionDataSource dataSource = new JRBeanCollectionDataSource(
+                    items != null ? items : List.of());
+            JasperPrint print = JasperFillManager.fillReport(jasperReport, params, dataSource);
+            return JasperExportManager.exportReportToPdf(print);
         }
     }
 }
