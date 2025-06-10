@@ -14,12 +14,12 @@ import java.util.List;
  */
 @Repository
 public interface ReporteDocumentarioRepository extends JpaRepository<ReporteDocumentario, Long> {
-    @Query("SELECT r FROM ReporteDocumentario r WHERE r.transferencia.id = :transferId")
-    List<ReporteDocumentario> findByTransferenciaId(@Param("transferId") Long transferId);
+    @Query("SELECT r FROM ReporteDocumentario r WHERE r.transferencia.id = :transferenciaId")
+    List<ReporteDocumentario> findByTransferenciaId(@Param("transferenciaId") Long transferenciaId);
 
-    @Query("SELECT r.pdfContent FROM ReporteDocumentario r WHERE r.id = :id")
+    @Query("SELECT r.archivoPdf FROM ReporteDocumentario r WHERE r.id = :id")
     byte[] findPdfContentById(@Param("id") Long id);
 
-    @Query("SELECT r.excelContent FROM ReporteDocumentario r WHERE r.id = :id")
+    @Query("SELECT r.archivoExcel FROM ReporteDocumentario r WHERE r.id = :id")
     byte[] findExcelContentById(@Param("id") Long id);
 }
