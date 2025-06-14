@@ -20,22 +20,13 @@ public class RegistroTransferencia {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    //
-    private String numero;
-    private String codigo;
-    private LocalDate fecha;
-    private String dependenciaOrigen;
-    private String dependenciaDestino;
-    private Integer totalDocumentos;
-    private String responsable;
 
     // Información General
     @Column(name = "nombre_entidad", length = 255)
     private String nombreEntidad;
     
     @Column(name = "unidad_organizacion", length = 255, nullable = false)
-    private String unidadAdministrativa;
+    private String unidadOrganizacion;
     
     @Column(length = 255)
     private String seccion;
@@ -70,29 +61,9 @@ public class RegistroTransferencia {
     // Atributos de Control
     @Column(name = "visto_bueno_responsable", length = 255)
     private String vistoBuenoResponsable;
-    
-    // Campos originales y complementarios
-    @Column(name = "numero_consecutivo", nullable = false)
-    private String numeroConsecutivo;
-    
+
     @Column(name = "fecha_transferencia", nullable = false)
     private LocalDate fechaTransferencia;
-    
-    @ManyToOne
-    @JoinColumn(name = "responsable_entrega_id", nullable = false)
-    private User responsableEntrega;
-    
-    @ManyToOne
-    @JoinColumn(name = "responsable_recepcion_id", nullable = false)
-    private User responsableRecepcion;
-    
-    private Integer unidadesConservacion;
-    
-    @Column(columnDefinition = "TEXT")
-    private String observaciones;
-    
-    @Column(name = "estado_documentacion")
-    private String estadoDocumentacion;
     
     @Column(name = "ruta_archivo")
     private String rutaArchivo;

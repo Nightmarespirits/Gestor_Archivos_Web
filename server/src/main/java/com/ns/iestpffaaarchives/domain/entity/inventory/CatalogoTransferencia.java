@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.ns.iestpffaaarchives.domain.entity.User;
@@ -20,9 +21,6 @@ public class CatalogoTransferencia {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(nullable = false)
-    private String titulo;
     
     // Información General
     @Column(name = "nombre_entidad", length = 255)
@@ -90,8 +88,22 @@ public class CatalogoTransferencia {
     @Column(name = "version")
     private Integer version;
     
-    @OneToMany(mappedBy = "catalogoTransferencia", cascade = CascadeType.ALL)
-    private List<DetalleCatalogoTransferencia> detalles;
+    @OneToMany(mappedBy = "catalogoTransferencia", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<DetalleCatalogoTransferencia> detalles = new ArrayList<>();
+    
+    /**
+     * Agrega un detalle al catálogo y establece la relación bidireccional
+     * @param detalle El detalle a agregar
+     * @return El detalle agregado
+     */
+    public DetalleCatalogoTransferencia addDetalle(DetalleCatalogoTransferencia detalle) {
+        if (detalles == null) {
+            detalles = new ArrayList<>();
+        }
+        detalles.add(detalle);
+        detalle.setCatalogoTransferencia(this);
+        return detalle;
+    }
     
     @Column(name = "ruta_archivo")
     private String rutaArchivo;

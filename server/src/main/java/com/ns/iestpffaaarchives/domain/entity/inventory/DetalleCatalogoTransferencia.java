@@ -22,10 +22,6 @@ public class DetalleCatalogoTransferencia {
     @JoinColumn(name = "catalogo_id", nullable = false)
     private CatalogoTransferencia catalogoTransferencia;
     
-    @ManyToOne
-    @JoinColumn(name = "documento_id")
-    private Document documento;
-    
     // Atributos de Items del Catálogo
     @Column(name = "numero_item")
     private Integer numeroItem;
@@ -53,22 +49,4 @@ public class DetalleCatalogoTransferencia {
     
     @Column(columnDefinition = "TEXT")
     private String observaciones;
-    
-    // Campos originales
-    @Column(name = "codigo_clasificacion")
-    private String codigoClasificacion;
-    
-    @Column(name = "nombre_expediente")
-    private String nombreExpediente;
-    
-    @Column(name = "fecha_inicial")
-    private LocalDate fechaInicial;
-    
-    @Column(name = "fecha_final")
-    private LocalDate fechaFinal;
-    
-    private String descriptoresTematicos;
-    
-    @Column(name = "ubicacion_fisica")
-    private String ubicacionFisica;
 }

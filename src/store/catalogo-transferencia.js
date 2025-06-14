@@ -48,7 +48,7 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
   async function fetchCatalogosTransferencia() {
     try {
       loading.value = true;
-      const data = await api.get('/inventarios/catalogo-transferencia', { debug: true });
+      const data = await api.get('/catalogo-transferencia', { debug: true });
       catalogosTransferencia.value = data || [];
       return data;
     } catch (err) {
@@ -69,7 +69,7 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
   async function fetchCatalogoTransferenciaById(id) {
     try {
       loading.value = true;
-      const data = await api.get(`/inventarios/catalogo-transferencia/${id}`);
+      const data = await api.get(`/catalogo-transferencia/${id}`);
       currentCatalogoTransferencia.value = data;
       return data;
     } catch (err) {
@@ -91,21 +91,19 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
       loading.value = true;
       
       // Enviar la solicitud al servidor
-      const createdCatalogo = await api.post('/inventarios/catalogo-transferencia', catalogoData);
+      const createdCatalogo = await api.post('/catalogo-transferencia', catalogoData);
       
       // Actualizar la lista si fue exitoso
       if (createdCatalogo && createdCatalogo.id) {
         await fetchCatalogosTransferencia();
         
         // Registrar actividad
-        await activityLogsStore.logActivity({
-          action: 'CREATE',
-          entityType: 'CATALOGO_TRANSFERENCIA',
-          entityId: createdCatalogo.id,
-          details: `Catálogo de Transferencia "${createdCatalogo.numero || createdCatalogo.codigo}" creado`
-        });
+        await activityLogsStore.createActivityLog(
+          'CREATE_CATALOG_TRANSFERENCY',
+          `Catalgo de transferencia "${ createdCatalogo.id}" creado`
+        );
       }
-      
+      console.log("Enviada a la api: ",JSON.stringify(catalogoData));
       return createdCatalogo;
     } catch (err) {
       error.value = err.message;
@@ -131,7 +129,7 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
       const oldState = currentData ? currentData.estado : null;
       
       // Enviar solicitud de actualización
-      const updatedCatalogo = await api.put(`/inventarios/catalogo-transferencia/${id}`, catalogoData);
+      const updatedCatalogo = await api.put(`/catalogo-transferencia/${id}`, catalogoData);
       
       // Actualizar la caché local si fue exitoso
       if (updatedCatalogo) {
@@ -185,7 +183,7 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
                                  currentCatalogoTransferencia.value : null);
       
       // Enviar solicitud de eliminación
-      await api.delete(`/inventarios/catalogo-transferencia/${id}`);
+      await api.delete(`/catalogo-transferencia/${id}`);
       
       // Actualizar el estado local
       catalogosTransferencia.value = catalogosTransferencia.value.filter(cat => cat.id !== id);
@@ -214,6 +212,156 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
       loading.value = false;
     }
   }
+  /**
+   * Busca catálogos de transferencia con paginación y filtros
+   * @param {Object} searchParams - Parámetros de búsqueda
+   * @param {String} searchParams.unidad - Filtro por unidad/organización
+   * @param {String} searchParams.titulo - Filtro por título o término
+   * @param {String} searchParams.estado - Filtro por estado
+   * @param {Number} searchParams.page - Número de página (0-indexed)
+   * @param {Number} searchParams.size - Tamaño de página
+   * @param {String} searchParams.sortBy - Campo para ordenar
+   * @param {String} searchParams.direction - Dirección de ordenamiento (asc/desc)
+   * @returns {Promise} - Página de catálogos que coinciden con los criterios
+   */
+  async function searchCatalogos(searchParams = {}) {
+    try {
+      loading.value = true;
+      
+      // Establecer valores por defecto para paginación
+      const params = {
+        page: searchParams.page !== undefined ? searchParams.page : pagination.value.page,
+        size: searchParams.size !== undefined ? searchParams.size : pagination.value.size,
+        sortBy: searchParams.sortBy || sortOptions.value.sortBy,
+        direction: searchParams.direction || sortOptions.value.direction
+      };
+      
+      // Añadir filtros opcionales solo si están presentes
+      if (searchParams.unidad) params.unidad = searchParams.unidad;
+      if (searchParams.titulo) params.titulo = searchParams.titulo;
+      if (searchParams.estado) params.estado = searchParams.estado;
+      
+      // Realizar la solicitud con los parámetros de consulta
+      const response = await api.get('/catalogo-transferencia/search', { 
+        params,
+        debug: true
+      });
+      
+      // Actualizar estado de paginación con datos recibidos
+      if (response && response.content) {
+        catalogosTransferencia.value = response.content || [];
+        pagination.value = {
+          page: response.number || 0,
+          size: response.size || 10,
+          totalItems: response.totalElements || 0,
+          totalPages: response.totalPages || 0
+        };
+        return response;
+      }
+      
+      return { content: [], number: 0, size: pagination.value.size, totalElements: 0, totalPages: 0 };
+    } catch (err) {
+      error.value = err.message;
+      console.error('searchCatalogos Error:', err);
+      return { content: [], number: 0, size: pagination.value.size, totalElements: 0, totalPages: 0 };
+    } finally {
+      loading.value = false;
+    }
+  }
+  
+  /**
+   * Obtiene todos los detalles de un catálogo por su ID
+   * @param {Number} catalogoId - ID del catálogo
+   * @returns {Promise} - Lista de detalles del catálogo
+   */
+  async function getDetallesByCatalogo(catalogoId) {
+    try {
+      loading.value = true;
+      const response = await api.get(`/catalogo-transferencia/${catalogoId}/detalles`);
+      console.log("Response---------------------------: ",response);
+      return response || [];
+
+
+    } catch (err) {
+      error.value = err.message;
+      console.error(`getDetallesByCatalogo Error para catálogo ID ${catalogoId}:`, err);
+      return [];
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Añade un nuevo detalle a un catálogo existente
+   * @param {Number} catalogoId - ID del catálogo
+   * @param {Object} detalleData - Datos del detalle a crear
+   * @returns {Promise} - Detalle creado
+   */
+  async function addDetalle(catalogoId, detalleData) {
+    try {
+      loading.value = true;
+      const response = await api.post(`/catalogo-transferencia/${catalogoId}/detalles`, detalleData);
+      return response;
+    } catch (err) {
+      error.value = err.message;
+      console.error(`Error al añadir detalle al catálogo ID ${catalogoId}:`, err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Actualiza un detalle existente
+   * @param {Number} catalogoId - ID del catálogo
+   * @param {Number} detalleId - ID del detalle
+   * @param {Object} detalleData - Datos actualizados del detalle
+   * @returns {Promise} - Detalle actualizado
+   */
+  async function updateDetalle(catalogoId, detalleId, detalleData) {
+    try {
+      loading.value = true;
+      const response = await api.put(`/catalogo-transferencia/${catalogoId}/detalles/${detalleId}`, detalleData);
+      return response;
+    } catch (err) {
+      error.value = err.message;
+      console.error(`Error al actualizar detalle ID ${detalleId} del catálogo ID ${catalogoId}:`, err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+  
+  /**
+   * Exporta un catálogo y sus detalles a Excel
+   * @param {Number} catalogoId - ID del catálogo a exportar
+   * @returns {Promise} - URL para descargar el archivo
+   */
+  async function exportCatalogoToExcel(catalogoId) {
+    try {
+      loading.value = true;
+      
+      // Construir la URL para la descarga directa
+      const downloadUrl = `${API_BASE_URL}/catalogo-transferencia/${catalogoId}/export-excel`;
+      
+      // Registrar actividad de exportación
+      await activityLogsStore.logActivity({
+        action: 'EXPORT',
+        entityType: 'CATALOGO_TRANSFERENCIA',
+        entityId: catalogoId,
+        details: `Catálogo de Transferencia ID: ${catalogoId} exportado a Excel`
+      });
+      
+      // Retornar la URL para que el componente pueda iniciar la descarga
+      return downloadUrl;
+    } catch (err) {
+      error.value = err.message;
+      console.error(`exportCatalogoToExcel Error para catálogo ID ${catalogoId}:`, err);
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
   
   return{
     catalogosTransferencia,
@@ -225,14 +373,21 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
     getCurrentCatalogoTransferencia,
     isLoading,
     getError,
-    getInventarioStates,
-    getInventarioStateColor,
-    getInventarioDownloadUrl,
+    //getInventarioStates,
+    //getInventarioStateColor,
+    //getInventarioDownloadUrl,
     fetchCatalogosTransferencia,
     fetchCatalogoTransferenciaById,
     createCatalogoTransferencia,
     updateCatalogoTransferencia,
-    deleteCatalogoTransferencia
+    deleteCatalogoTransferencia,
+    searchCatalogos,
+    getDetallesByCatalogo,
+    addDetalle,
+    updateDetalle,
+    exportCatalogoToExcel,
+    pagination,
+    sortOptions
   }
 
 

@@ -3,15 +3,29 @@
     <v-card>
       <v-card-title class="d-flex justify-space-between">
         <span>Editar Catálogo de Transferencia</span>
-        <v-btn
-          color="error"
-          variant="outlined"
-          prepend-icon="mdi-arrow-left"
-          :to="{ name: 'catalogo-transferencia-detalle', params: { id } }"
-          class="ml-2"
-        >
-          Cancelar
-        </v-btn>
+        <v-row class="mt-4">
+          <v-col cols="12" class="d-flex justify-space-between">
+            <v-btn
+              color="info"
+              variant="outlined"
+              :to="{ name: 'catalogo-transferencia-detalles', params: { id } }"
+              prepend-icon="mdi-table-edit"
+            >
+              Gestionar Detalles
+            </v-btn>
+            
+            <div>
+              <v-btn
+                color="error"
+                variant="outlined"
+                :to="{ name: 'catalogo-transferencia-detalle', params: { id } }"
+                class="ml-2"
+              >
+                Cancelar
+              </v-btn>
+            </div>
+          </v-col>
+        </v-row>
       </v-card-title>
       
       <v-card-text>
@@ -22,67 +36,72 @@
           :text="error"
           class="mb-4"
         ></v-alert>
-        
+        <!--
         <v-skeleton-loader
           v-if="loading && !catalogoExistente"
           type="card-heading, form"
         ></v-skeleton-loader>
-        
+        -->
         <v-form v-else ref="form" @submit.prevent="actualizarCatalogo">
           <v-row>
-            <!-- Código -->
+            <!-- Nombre Entidad -->
             <v-col cols="12" md="6">
               <v-text-field
-                v-model="catalogo.codigo"
-                label="Código"
-                :rules="[v => !!v || 'Código es requerido']"
+                v-model="catalogo.nombreEntidad"
+                label="Nombre Entidad"
+                :rules="[v => !!v || 'Nombre de entidad es requerido']"
                 required
                 variant="outlined"
               ></v-text-field>
             </v-col>
             
-            <!-- Número -->
+            <!-- Unidad Organización -->
             <v-col cols="12" md="6">
               <v-text-field
-                v-model="catalogo.numero"
-                label="Número"
-                :rules="[v => !!v || 'Número es requerido']"
+                v-model="catalogo.unidadOrganizacion"
+                label="Unidad de Organización"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Sección -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.seccion"
+                label="Sección"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Nivel Descripción -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.nivelDescripcion"
+                label="Nivel de Descripción"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+
+            <!-- Serie Documental -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.serieDocumental"
+                label="Serie Documental"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Código de Referencia -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.codigoReferencia"
+                label="Código de Referencia"
                 required
+                :rules="[v => !!v || 'Código de referencia es requerido']"
                 variant="outlined"
               ></v-text-field>
             </v-col>
-            
-            <!-- Título -->
-            <v-col cols="12">
-              <v-text-field
-                v-model="catalogo.titulo"
-                label="Título"
-                :rules="[v => !!v || 'Título es requerido']"
-                required
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Años Extremos -->
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="catalogo.anosExtremos"
-                label="Años Extremos"
-                hint="Ejemplo: 1995-2005"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Número de Folios -->
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="catalogo.numeroFolios"
-                label="Número de Folios"
-                type="number"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
+
             <!-- Soporte -->
             <v-col cols="12" md="6">
               <v-select
@@ -92,17 +111,61 @@
                 variant="outlined"
               ></v-select>
             </v-col>
-            
-            <!-- Estado de Conservación -->
+
+            <!-- Volumen en Metros Lineales -->
             <v-col cols="12" md="6">
-              <v-select
-                v-model="catalogo.estadoConservacion"
-                :items="estadosConservacion"
-                label="Estado de Conservación"
-                :rules="[v => !!v || 'Estado de conservación es requerido']"
-                required
+              <v-text-field
+                v-model="catalogo.volumenMetrosLineales"
+                label="Volumen (metros lineales)"
+                type="number"
+                step="0.01"
                 variant="outlined"
-              ></v-select>
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Responsable Sección -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.responsableSeccion"
+                label="Responsable de Sección"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>        
+            
+            <!-- Inventario Elaborado Por -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.inventarioElaboradoPor"
+                label="Elaborado por"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Número/Año Remisión -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.numeroAnioRemision"
+                label="Número/Año Remisión"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Lugar y Fecha Elaboración -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.lugarFechaElaboracion"
+                label="Lugar y fecha de elaboración"
+                variant="outlined"
+              ></v-text-field>
+            </v-col>
+            
+            <!-- Visto Bueno Responsable -->
+            <v-col cols="12" md="6">
+              <v-text-field
+                v-model="catalogo.vistoBuenoResponsable"
+                label="Visto Bueno Responsable"
+                variant="outlined"
+              ></v-text-field>
             </v-col>
             
             <!-- Observaciones -->
@@ -163,19 +226,24 @@ const catalogoExistente = computed(() => inventariosStore.getCurrentCatalogoTran
 
 // Estructura del catálogo para editar
 const catalogo = ref({
-  codigo: '',
-  numero: '',
-  titulo: '',
-  anosExtremos: '',
-  numeroFolios: 0,
+  nombreEntidad: '',
+  unidadOrganizacion: '',
+  seccion: '',
+  nivelDescripcion: '',
+  serieDocumental: '',
+  codigoReferencia: '',
+  volumenMetrosLineales: 0,
+  responsableSeccion: '',
+  inventarioElaboradoPor: '',
+  numeroAnioRemision: '',
+  lugarFechaElaboracion: '',
+  vistoBuenoResponsable: '',
   soporte: 'PAPEL',
-  estadoConservacion: 'BUENO',
   observaciones: '',
 });
 
 // Datos para los selectores
 const soportes = ['PAPEL', 'DIGITAL', 'AUDIOVISUAL', 'MICROFILM', 'OTRO'];
-const estadosConservacion = ['BUENO', 'REGULAR', 'MALO'];
 
 // Cargar el catálogo al montar el componente
 onMounted(async () => {

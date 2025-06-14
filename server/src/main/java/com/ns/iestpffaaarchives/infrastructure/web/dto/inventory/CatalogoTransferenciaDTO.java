@@ -1,20 +1,21 @@
-// CatalogoTransferenciaDTO.java
-package com.ns.iestpffaaarchives.infrastructure.web.dto;
+package com.ns.iestpffaaarchives.infrastructure.web.dto.inventory;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import com.ns.iestpffaaarchives.domain.entity.inventory.InventarioGeneral.EstadoDocumento;
-
 /**
- * DTO para Catálogo de Transferencia (Anexo N° 06)
+ * DTO para Catálogo de Transferencia
  */
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CatalogoTransferenciaDTO {
     private Long id;
-    private String titulo;
     
     // Información General
     private String nombreEntidad;
@@ -33,18 +34,23 @@ public class CatalogoTransferenciaDTO {
     // Atributos de Control
     private String vistoBuenoResponsable;
     
-    // Campos originales y complementarios
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime fechaCreacion;
+    
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime fechaModificacion;
+    
     private Long creadorId;
     private String creadorNombre;
+    
     private Long usuarioModificacionId;
     private String usuarioModificacionNombre;
+    
     private String observaciones;
-    private EstadoDocumento estado;
+    private String estado;
     private Integer version;
     
-    // Relaciones
-    private List<Long> documentoIds;
+    private String rutaArchivo;
+    
     private List<DetalleCatalogoTransferenciaDTO> detalles;
 }

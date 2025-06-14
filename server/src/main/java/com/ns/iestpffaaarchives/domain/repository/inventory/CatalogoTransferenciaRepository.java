@@ -18,12 +18,12 @@ public interface CatalogoTransferenciaRepository extends JpaRepository<CatalogoT
     List<CatalogoTransferencia> findBySoporte(String soporte);
     List<CatalogoTransferencia> findByNumeroAnioRemision(String numeroAnioRemision);
     List<CatalogoTransferencia> findByEstado(EstadoDocumento estado);
-    List<CatalogoTransferencia> findByTituloContaining(String titulo);
+    // Método eliminado porque el campo 'titulo' ya no existe en la entidad CatalogoTransferencia
     
     // Búsqueda paginada
     Page<CatalogoTransferencia> findByEstado(EstadoDocumento estado, Pageable pageable);
     Page<CatalogoTransferencia> findByUnidadOrganizacion(String unidadOrganizacion, Pageable pageable);
-    Page<CatalogoTransferencia> findByTituloContaining(String titulo, Pageable pageable);
+    // Método eliminado porque el campo 'titulo' ya no existe en la entidad CatalogoTransferencia
     
     // Búsquedas combinadas
     List<CatalogoTransferencia> findByUnidadOrganizacionAndSeccion(String unidadOrganizacion, String seccion);

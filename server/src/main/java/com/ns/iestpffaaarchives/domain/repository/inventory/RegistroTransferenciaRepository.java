@@ -12,7 +12,7 @@ import java.util.List;
 public interface RegistroTransferenciaRepository extends JpaRepository<RegistroTransferencia, Long> {
     // Métodos de búsqueda por los nuevos campos
     List<RegistroTransferencia> findByNombreEntidad(String nombreEntidad);
-    List<RegistroTransferencia> findByUnidadAdministrativa(String unidadAdministrativa);
+    List<RegistroTransferencia> findByUnidadOrganizacion(String unidadOrganizacion);
     List<RegistroTransferencia> findBySeccion(String seccion);
     List<RegistroTransferencia> findBySerieDocumental(String serieDocumental);
     List<RegistroTransferencia> findBySoporte(String soporte);
@@ -22,10 +22,10 @@ public interface RegistroTransferenciaRepository extends JpaRepository<RegistroT
     
     // Búsqueda paginada
     Page<RegistroTransferencia> findByEstado(EstadoDocumento estado, Pageable pageable);
-    Page<RegistroTransferencia> findByUnidadAdministrativa(String unidadAdministrativa, Pageable pageable);
+    Page<RegistroTransferencia> findByUnidadOrganizacion(String unidadOrganizacion, Pageable pageable);
     
     // Búsquedas combinadas
-    List<RegistroTransferencia> findByUnidadAdministrativaAndSeccion(String unidadAdministrativa, String seccion);
+    List<RegistroTransferencia> findByUnidadOrganizacionAndSeccion(String unidadOrganizacion, String seccion);
     List<RegistroTransferencia> findByFechaTransferenciaBetween(LocalDate fechaInicio, LocalDate fechaFin);
     List<RegistroTransferencia> findByNombreEntidadAndNumeroAnioRemision(String nombreEntidad, String numeroAnioRemision);
 }

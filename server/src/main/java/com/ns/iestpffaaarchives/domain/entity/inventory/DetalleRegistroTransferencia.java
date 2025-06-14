@@ -22,10 +22,6 @@ public class DetalleRegistroTransferencia {
     @JoinColumn(name = "registro_transferencia_id", nullable = false)
     private RegistroTransferencia registroTransferencia;
     
-    @ManyToOne
-    @JoinColumn(name = "documento_id")
-    private Document documento;
-    
     // Atributos de Items del Registro
     @Column(name = "numero_item")
     private Integer numeroItem;

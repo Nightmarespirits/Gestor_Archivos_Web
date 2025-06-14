@@ -27,6 +27,12 @@ export const catalogoTransferenciaRoutes = {
             name: 'catalogo-transferencia-edit',
             component: () => import('@/pages/catalogo-transferencia/[id]/edit.vue'),
             meta: { requiredPermissions: [PERMISSIONS.DOC_UPDATE] }
+        },
+        {
+            path: ':id/detalles',
+            name: 'catalogo-transferencia-detalles',
+            component: () => import('@/pages/catalogo-transferencia/[id]/detalles.vue'),
+            meta: { requiredPermissions: [PERMISSIONS.DOC_UPDATE] }
         }
     ]
 }

@@ -183,13 +183,13 @@ const filters = ref({
 
 // Headers para la tabla según Anexo N° 06
 const headers = [
-  { title: 'N°', key: 'numero', sortable: true, align: 'center', width: '80px' },
-  { title: 'Código', key: 'codigo', sortable: true },
-  { title: 'Título', key: 'titulo', sortable: true },
-  { title: 'Años Extremos', key: 'anosExtremos', sortable: true },
-  { title: 'N° Folios', key: 'numeroFolios', sortable: true, align: 'center' },
+  { title: 'N°', key: 'id', sortable: true, align: 'center', width: '80px' },
+  { title: 'Código', key: 'codigoReferencia', sortable: true },
+  { title: 'Título', key: 'serieDocumental', sortable: true },
+  { title: 'Lugar y Fecha', key: 'lugarFechaElaboracion', sortable: true },
+  { title: 'Volumen (M)', key: 'volumenMetrosLineales', sortable: true, align: 'center' },
   { title: 'Soporte', key: 'soporte', sortable: true },
-  { title: 'Est. Conservación', key: 'estadoConservacion', sortable: true },
+  { title: 'Elaborado por', key: 'inventarioElaboradoPor', sortable: true },
   { title: 'Acciones', key: 'actions', sortable: false, align: 'center' }
 ];
 
@@ -205,7 +205,7 @@ async function cargarCatalogos() {
 
 async function buscarCatalogos() {
   // Implementar filtrado avanzado
-  // Por ahora, solo recargamos los catálogos
+  // Por ahora, solo recargamos los catálogos TODO
   await cargarCatalogos();
 }
 
@@ -234,6 +234,19 @@ async function descargarCatalogo(id, formato = 'pdf') {
 // Métodos auxiliares
 function getEstadoColor(estado) {
   switch (estado) {
+    case 'BUENO':
+      return 'success';
+    case 'REGULAR':
+      return 'warning';
+    case 'MALO':
+      return 'error';
+    default:
+      return 'grey';
+  }
+}
+
+function getEstadoConservacionColor(estadoConservacion) {
+  switch (estadoConservacion) {
     case 'BUENO':
       return 'success';
     case 'REGULAR':
