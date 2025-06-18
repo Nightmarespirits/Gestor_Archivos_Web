@@ -472,6 +472,11 @@
     </v-card-actions>
     </v-card>
 </v-dialog>
+<!-- Snackbar para notificaciones -->
+<v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="snackbar.timeout">
+    {{ snackbar.text }}
+</v-snackbar>
+
 </template>
 
 <script setup>
@@ -494,6 +499,13 @@ const error = ref(null);
 const catalogo = computed(() => catalogoTransferenciaStore.getCurrentCatalogoTransferencia());
 const modalDetalleItem = ref(false);
 const detalleSeleccionado = ref(null);
+// Snackbar para notificaciones
+const snackbar = ref({
+  show: false,
+  text: '',
+  color: 'success',
+  timeout: 3000,
+});
 
 // Headers para la tabla de detalles
 const detalleHeaders = [
@@ -558,7 +570,7 @@ if (confirm('¿Está seguro que desea eliminar este catálogo de transferencia?'
     try {
     const eliminado = await catalogoTransferenciaStore.deleteCatalogoTransferencia(id.value);
     if (eliminado) {
-        alert('Catálogo eliminado correctamente');
+        showSnackbar(`Documento Eliminado Correctamente:`);
         router.push({ name: 'catalogo-transferencia-list' });
     }
     } catch (err) {

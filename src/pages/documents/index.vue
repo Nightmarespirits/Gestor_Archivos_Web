@@ -232,7 +232,6 @@ const snackbar = ref({
 onMounted(async () => {
   try {
     await documentsStore.fetchDocuments();
-    console.log('Documentos cargados:', JSON.stringify(documentsStore.documents, null, 2));
   } catch (error) {
     showSnackbar(`Error al cargar documentos: ${error.message}`, 'error');
   }

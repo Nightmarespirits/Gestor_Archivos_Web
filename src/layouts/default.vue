@@ -18,6 +18,8 @@
       @toggle-theme="toggleTheme"
     />
 
+    
+
     <v-main>
       <v-container fluid>
         <router-view />
@@ -26,6 +28,9 @@
 
     <!-- Footer Component -->
     <app-footer />
+
+
+    <GlobalNotifications />
   </v-app>
 </template>
 
@@ -35,6 +40,7 @@ import { useTheme } from 'vuetify';
 import AppSidebar from '@/components/layouts/AppSidebar.vue';
 import AppNavbar from '@/components/layouts/AppNavbar.vue';
 import AppFooter from '@/components/layouts/AppFooter.vue';
+import GlobalNotifications from '@/components/common/GlobalNotifications.vue';
 
 const themeInstance = useTheme();
 const theme = ref(localStorage.getItem('appTheme') || 'light');

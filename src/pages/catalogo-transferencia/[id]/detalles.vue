@@ -192,20 +192,6 @@
       </v-card>
     </v-dialog>
     
-    <!-- Diálogo de confirmación para eliminar -->
-    <v-dialog v-model="dialogEliminar" max-width="500px">
-      <v-card>
-        <v-card-title>¿Eliminar este detalle?</v-card-title>
-        <v-card-text>
-          Esta acción no se puede deshacer. ¿Está seguro que desea eliminar este detalle?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="secondary" variant="text" @click="dialogEliminar = false">Cancelar</v-btn>
-          <v-btn color="error" @click="eliminarDetalle" :loading="eliminando">Eliminar</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 
@@ -213,12 +199,14 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCatalogoTransferenciaStore } from '@/store/catalogo-transferencia';
+import { useNotifications } from '@/composables/useNotifications';
 import { format } from 'date-fns';
 
 // Stores y router
 const route = useRoute();
 const router = useRouter();
 const catalogoTransferenciaStore = useCatalogoTransferenciaStore();
+const { showSuccess, showError, showConfirm } = useNotifications();
 
 // Estado reactivo
 const catalogoId = computed(() => route.params.id);
@@ -229,8 +217,6 @@ const modalDetalle = ref(false);
 const editandoDetalle = ref(false);
 const guardando = ref(false);
 const eliminando = ref(false);
-const dialogEliminar = ref(false);
-const detalleAEliminar = ref(null);
 
 // Formulario
 const detalleForm = ref(null);
@@ -352,11 +338,11 @@ function resetDetalleForm() {
 
 async function guardarDetalle() {
   if (!detalleForm.value || !detalleForm.value.validate()) {
+    showError('Por favor complete todos los campos requeridos');
     return;
   }
   
   try {
-    console.log('Guardando...')
     guardando.value = true;
     
     // Preparar los datos del detalle
@@ -366,36 +352,53 @@ async function guardarDetalle() {
     };
     
     if (editandoDetalle.value && detalleActual.value.id) {
-      // Actualizar detalle existente
       await catalogoTransferenciaStore.updateDetalle(
         catalogoId.value,
         detalleActual.value.id,
         detalleData
       );
-      alert('Detalle actualizado con éxito');
+      showSuccess('Detalle actualizado correctamente');
     } else {
-      // Crear nuevo detalle
       await catalogoTransferenciaStore.addDetalle(
         catalogoId.value,
         detalleData
       );
-      alert('Detalle añadido con éxito');
+      showSuccess('Detalle añadido correctamente');
     }
     
-    // Recargar detalles
     await cargarDetalles();
     cerrarModalDetalle();
   } catch (err) {
-    error.value = `Error al guardar detalle: ${err.message}`;
+    showError(`Error al guardar el detalle: ${err.message}`);
     console.error('Error:', err);
   } finally {
     guardando.value = false;
   }
 }
 
-function confirmarEliminarDetalle(detalle) {
-  detalleAEliminar.value = detalle;
-  dialogEliminar.value = true;
+async function confirmarEliminarDetalle(detalle) {
+  const confirmed = await showConfirm({
+    title: 'Confirmar eliminación',
+    message: '¿Está seguro que desea eliminar este detalle? Esta acción no se puede deshacer.',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    confirmColor: 'error'
+  });
+
+  if (confirmed) {
+    try {
+      eliminando.value = true;
+      // Aquí iría la llamada al API para eliminar
+      await catalogoTransferenciaStore.deleteDetalle(catalogoId.value, detalle.id);
+      showSuccess('Detalle eliminado correctamente');
+      await cargarDetalles();
+    } catch (error) {
+      showError(`Error al eliminar el detalle: ${error.message}`);
+      console.error('Error:', error);
+    } finally {
+      eliminando.value = false;
+    }
+  }
 }
 
 async function eliminarDetalle() {
@@ -407,14 +410,14 @@ async function eliminarDetalle() {
     // Implementar llamada a la API para eliminar detalle
     // await api.delete(`/api/catalogo-transferencia/${id.value}/detalles/${detalleAEliminar.value.id}`);
     
-    alert('Detalle eliminado con éxito');
+    showSuccess('Detalle eliminado con éxito');
     dialogEliminar.value = false;
     detalleAEliminar.value = null;
     
     // Recargar detalles
     await cargarDetalles();
   } catch (err) {
-    error.value = `Error al eliminar detalle: ${err.message}`;
+    showError(`Error al eliminar detalle: ${err.message}`);
     console.error('Error:', err);
   } finally {
     eliminando.value = false;

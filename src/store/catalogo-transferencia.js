@@ -103,7 +103,6 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
           `Catalgo de transferencia "${ createdCatalogo.id}" creado`
         );
       }
-      console.log("Enviada a la api: ",JSON.stringify(catalogoData));
       return createdCatalogo;
     } catch (err) {
       error.value = err.message;
@@ -278,7 +277,6 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
     try {
       loading.value = true;
       const response = await api.get(`/catalogo-transferencia/${catalogoId}/detalles`);
-      console.log("Response---------------------------: ",response);
       return response || [];
 
 
@@ -341,19 +339,47 @@ export const useCatalogoTransferenciaStore = defineStore('catalogoTransferencia'
     try {
       loading.value = true;
       
-      // Construir la URL para la descarga directa
-      const downloadUrl = `${API_BASE_URL}/catalogo-transferencia/${catalogoId}/export-excel`;
-      
-      // Registrar actividad de exportación
-      await activityLogsStore.logActivity({
-        action: 'EXPORT',
-        entityType: 'CATALOGO_TRANSFERENCIA',
-        entityId: catalogoId,
-        details: `Catálogo de Transferencia ID: ${catalogoId} exportado a Excel`
+      // Hacer la llamada directa a la API para obtener el archivo Excel como blob
+      const response = await fetch(`${API_BASE_URL}/catalogo-transferencia/${catalogoId}/export-excel`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json'
+        }
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // Obtener el blob del archivo
+      const blob = await response.blob();
       
-      // Retornar la URL para que el componente pueda iniciar la descarga
-      return downloadUrl;
+      // Crear URL temporal para el blob
+      const url = window.URL.createObjectURL(blob);
+      
+      // Crear elemento temporal para descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `catalogo_transferencia_${catalogoId}_${Date.now()}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Limpiar
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Registrar actividad si es necesario
+      try {
+        await activityLogsStore.logActivity(
+          'EXPORT_CATALOG_TRANSFERENCY',
+          `Catálogo de transferencia "${catalogoId}" exportado a Excel`
+        );
+      } catch (activityError) {
+        console.warn('Error al registrar actividad de exportación:', activityError);
+        // No lanzar error aquí ya que la exportación fue exitosa
+      }
+
     } catch (err) {
       error.value = err.message;
       console.error(`exportCatalogoToExcel Error para catálogo ID ${catalogoId}:`, err);

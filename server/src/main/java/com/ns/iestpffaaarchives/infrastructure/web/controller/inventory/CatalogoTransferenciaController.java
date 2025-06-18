@@ -2,9 +2,8 @@ package com.ns.iestpffaaarchives.infrastructure.web.controller.inventory;
 
 import com.ns.iestpffaaarchives.application.service.UserService;
 import com.ns.iestpffaaarchives.application.service.inventory.CatalogoTransferenciaService;
-import com.ns.iestpffaaarchives.application.service.export.ExcelExportService;
+import com.ns.iestpffaaarchives.application.service.export.CatalogoTransferenciaExportService;
 import com.ns.iestpffaaarchives.domain.entity.User;
-import com.ns.iestpffaaarchives.domain.repository.inventory.CatalogoTransferenciaRepository;
 import com.ns.iestpffaaarchives.domain.repository.inventory.DetalleCatalogoTransferenciaRepository;
 import com.ns.iestpffaaarchives.domain.entity.inventory.InventarioGeneral.EstadoDocumento;
 import com.ns.iestpffaaarchives.domain.entity.inventory.CatalogoTransferencia;
@@ -48,13 +47,13 @@ public class CatalogoTransferenciaController {
     private final CatalogoTransferenciaService catalogoTransferenciaService;
     private final UserService userService;
     private final DetalleCatalogoTransferenciaRepository detalleCatalogoTransferenciaRepository;
-    private final ExcelExportService excelExportService;
+    private final CatalogoTransferenciaExportService excelExportService;
     
     @Autowired
     public CatalogoTransferenciaController(CatalogoTransferenciaService catalogoTransferenciaService, 
                                           UserService userService, 
                                           DetalleCatalogoTransferenciaRepository detalleCatalogoTransferenciaRepository,
-                                          ExcelExportService excelExportService) {
+                                          CatalogoTransferenciaExportService excelExportService) {
         this.catalogoTransferenciaService = catalogoTransferenciaService;
         this.userService = userService;
         this.detalleCatalogoTransferenciaRepository = detalleCatalogoTransferenciaRepository;
@@ -614,11 +613,8 @@ public class CatalogoTransferenciaController {
             
             CatalogoTransferencia catalogo = catalogoOpt.get();
             
-            // Obtener todos los detalles asociados al catálogo
-            List<DetalleCatalogoTransferencia> detalles = catalogoTransferenciaService.getDetallesByCatalogoId(id);
-            
             // Generar el archivo Excel
-            byte[] excelBytes = excelExportService.exportCatalogoToExcel(catalogo, detalles);
+            byte[] excelBytes = excelExportService.exportar(catalogo);
             
             // Construir el nombre del archivo
             String filename = "catalogo_transferencia_" + id + "_" + System.currentTimeMillis() + ".xlsx";

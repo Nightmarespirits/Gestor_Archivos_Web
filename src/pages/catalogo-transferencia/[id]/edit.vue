@@ -210,12 +210,14 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useCatalogoTransferenciaStore } from '@/store/catalogo-transferencia';  
 import { useAuthStore } from '@/store/auth';
+import { useNotifications } from '@/composables/useNotifications';
 
 // Stores
 const route = useRoute();
 const router = useRouter();
 const inventariosStore = useCatalogoTransferenciaStore();
 const authStore = useAuthStore();
+const { showSuccess, showError } = useNotifications();
 
 // Estado reactivo
 const id = computed(() => route.params.id);
@@ -275,14 +277,15 @@ async function actualizarCatalogo() {
     const resultado = await inventariosStore.updateCatalogoTransferencia(id.value, catalogo.value);
     
     if (resultado) {
-      // Mostrar notificación de éxito
-      alert('Catálogo de transferencia actualizado con éxito');
+      showSuccess('Catálogo de transferencia actualizado con éxito');
       
-      // Redireccionar a la vista de detalle
-      router.push({ name: 'catalogo-transferencia-detalle', params: { id: id.value } });
+      // Redireccionar a la vista de detalle después de un breve delay
+      setTimeout(() => {
+        router.push({ name: 'catalogo-transferencia-detalle', params: { id: id.value } });
+      }, 1000);
     }
   } catch (err) {
-    error.value = `Error al actualizar el catálogo: ${err.message}`;
+    showError(`Error al actualizar el catálogo: ${err.message}`);
     console.error('Error:', err);
   }
 }

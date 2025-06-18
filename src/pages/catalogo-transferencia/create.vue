@@ -249,140 +249,171 @@
         </v-form>
       </v-card-text>
     </v-card>
-  </v-container>
 
-  <!-- Modal para Añadir/Editar Detalle -->
-  <v-dialog v-model="modalDetalle" max-width="800px">
-    <v-card>
-      <v-card-title>
-        {{ detalleIndex >= 0 ? 'Editar' : 'Añadir' }} Ítem
-      </v-card-title>
-      
-      <v-card-text>
-        <v-form @submit.prevent="agregarDetalle">
-          <v-row>
-            <!-- Número de Item -->
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="detalleForm.numeroItem"
-                label="Número de Item"
-                type="number"
-                :rules="[v => !!v || 'Número de item es requerido']"
-                required
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Número de Caja -->
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="detalleForm.numeroCaja"
-                label="Número de Caja"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Número de Tomo/Paquete -->
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="detalleForm.numeroTomoPaquete"
-                label="Número de Tomo/Paquete"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Número de Unidad Documental -->
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="detalleForm.numeroUnidadDocumental"
-                label="Número de Unidad Documental"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Fecha de Unidad Documental -->
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="detalleForm.fechaUnidadDocumental"
-                label="Fecha de Unidad Documental"
-                type="date"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Alcance y Contenido -->
-            <v-col cols="12" md="6">
-              <v-textarea
-                v-model="detalleForm.alcanceContenido"
-                label="Alcance y Contenido"
-                variant="outlined"
-                rows="3"
-              ></v-textarea>
-            </v-col>
-            
-            <!-- Información Adicional -->
-            <v-col cols="12" md="6">
-              <v-textarea
-                v-model="detalleForm.informacionAdicional"
-                label="Información Adicional"
-                variant="outlined"
-                rows="3"
-              ></v-textarea>
-            </v-col>
-            
-            <!-- Cantidad de Folios -->
-            <v-col cols="12" md="6">
-              <v-text-field
-                v-model="detalleForm.cantidadFolios"
-                label="Cantidad de Folios"
-                type="number"
-                variant="outlined"
-              ></v-text-field>
-            </v-col>
-            
-            <!-- Observaciones -->
-            <v-col cols="12" md="6">
-              <v-textarea
-                v-model="detalleForm.observaciones"
-                label="Observaciones"
-                variant="outlined"
-                rows="3"
-              ></v-textarea>
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-card-text>
-      
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn
-          variant="text"
-          @click="cerrarModalDetalle"
-        >
-          Cancelar
-        </v-btn>
-        <v-btn
-          color="primary"
-          @click="agregarDetalle"
-        >
-          Guardar
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <!-- Modal para Añadir/Editar Detalle -->
+    <v-dialog v-model="modalDetalle" max-width="800px">
+      <v-card>
+        <v-card-title>
+          {{ detalleIndex >= 0 ? 'Editar' : 'Añadir' }} Ítem
+        </v-card-title>
+        
+        <v-card-text>
+          <v-form @submit.prevent="agregarDetalle">
+            <v-row>
+              <!-- Número de Item -->
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="detalleForm.numeroItem"
+                  label="Número de Item"
+                  type="number"
+                  :rules="[v => !!v || 'Número de item es requerido']"
+                  required
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Número de Caja -->
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="detalleForm.numeroCaja"
+                  label="Número de Caja"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Número de Tomo/Paquete -->
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="detalleForm.numeroTomoPaquete"
+                  label="Número de Tomo/Paquete"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Número de Unidad Documental -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="detalleForm.numeroUnidadDocumental"
+                  label="Número de Unidad Documental"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Fecha de Unidad Documental -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="detalleForm.fechaUnidadDocumental"
+                  label="Fecha de Unidad Documental"
+                  type="date"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Alcance y Contenido -->
+              <v-col cols="12" md="6">
+                <v-textarea
+                  v-model="detalleForm.alcanceContenido"
+                  label="Alcance y Contenido"
+                  variant="outlined"
+                  rows="3"
+                ></v-textarea>
+              </v-col>
+              
+              <!-- Información Adicional -->
+              <v-col cols="12" md="6">
+                <v-textarea
+                  v-model="detalleForm.informacionAdicional"
+                  label="Información Adicional"
+                  variant="outlined"
+                  rows="3"
+                ></v-textarea>
+              </v-col>
+              
+              <!-- Cantidad de Folios -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="detalleForm.cantidadFolios"
+                  label="Cantidad de Folios"
+                  type="number"
+                  variant="outlined"
+                ></v-text-field>
+              </v-col>
+              
+              <!-- Observaciones -->
+              <v-col cols="12" md="6">
+                <v-textarea
+                  v-model="detalleForm.observaciones"
+                  label="Observaciones"
+                  variant="outlined"
+                  rows="3"
+                ></v-textarea>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            variant="text"
+            @click="cerrarModalDetalle"
+          >
+            Cancelar
+          </v-btn>
+          <v-btn
+            color="primary"
+            @click="agregarDetalle"
+          >
+            Guardar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Diálogo de confirmación -->
+    <v-dialog v-model="confirmDialog.show" max-width="500px">
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">{{ confirmDialog.title }}</span>
+        </v-card-title>
+        <v-card-text>
+          {{ confirmDialog.message }}
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="confirmDialog.onCancel"
+          >
+            {{ confirmDialog.cancelText }}
+          </v-btn>
+          <v-btn
+            :color="confirmDialog.confirmColor"
+            variant="text"
+            @click="confirmDialog.onConfirm"
+          >
+            {{ confirmDialog.confirmText }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-container>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { format } from 'date-fns';
 import { useRouter } from 'vue-router';
 import { useCatalogoTransferenciaStore } from '@/store/catalogo-transferencia';  
 import { useAuthStore } from '@/store/auth';
+import { useNotifications } from '@/composables/useNotifications';
+import { format } from 'date-fns';
 
 // Stores
 const router = useRouter();
 const inventariosStore = useCatalogoTransferenciaStore();
 const authStore = useAuthStore();
+const { snackbar, confirmDialog, showSuccess, showError, showInfo, showConfirm, closeSnackbar } = useNotifications();
 
 // Estado reactivo
 const loading = computed(() => inventariosStore.isLoading());
@@ -437,26 +468,35 @@ const detalleForm = ref({
 
 // Métodos
 async function guardarCatalogo() {
-  if (!form.value.validate()) {
+  const { valid } = await form.value.validate();
+  if (!valid) {
+    showError('Por favor corrija los errores en el formulario');
+    return;
+  }
+
+  if (catalogo.value.detalles.length === 0) {
+    showError('Debe agregar al menos un ítem al catálogo');
     return;
   }
 
   try {
-    const resultado = await inventariosStore.createCatalogoTransferencia(catalogo.value);
+    showInfo('Guardando catálogo...', 0); // Usando 0 como timeout para que permanezca hasta que termine
+
+    const catalogoCreado = await inventariosStore.createCatalogoTransferencia(catalogo.value);
     
-    if (resultado && resultado.id) {
-      // Mostrar notificación de éxito
-      alert('Catálogo de transferencia creado con éxito');
+    if (catalogoCreado) {
+      showSuccess('Catálogo de transferencia creado correctamente');
       
-      // Resetear el formulario para permitir crear otro catálogo
-      resetForm();
-      
-      // Redireccionar a la lista de catálogos
-      router.push({ name: 'catalogo-transferencia-list' });
+      // Redirigir después de un breve delay
+      setTimeout(() => {
+        router.push({ name: 'catalogo-transferencia-list' });
+      }, 1500);
+    } else {
+      showError('No se pudo crear el catálogo de transferencia');
     }
   } catch (error) {
-    console.error('Error al guardar el catálogo:', error);
-    alert('Error al guardar el catálogo: ' + error.message);
+    console.error('Error al crear catálogo:', error);
+    showError('Error al crear el catálogo: ' + error.message);
   }
 }
 
@@ -479,9 +519,18 @@ function editarDetalle(index) {
   modalDetalle.value = true;
 }
 
-function eliminarDetalle(index) {
-  if (confirm('¿Está seguro de eliminar este detalle?')) {
+async function eliminarDetalle(index) {
+  const confirmed = await showConfirm({
+    title: 'Confirmar eliminación',
+    message: '¿Está seguro de eliminar este detalle?',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    confirmColor: 'error'
+  });
+
+  if (confirmed) {
     catalogo.value.detalles.splice(index, 1);
+    showSuccess('Detalle eliminado correctamente');
   }
 }
 

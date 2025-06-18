@@ -166,12 +166,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useAuthStore } from '@/store/auth';
 import { useCatalogoTransferenciaStore } from '@/store/catalogo-transferencia';  
 import { useRouter } from 'vue-router';
+import { useNotifications } from '@/composables/useNotifications';
 
-// Stores
+// Stores y composables
 const authStore = useAuthStore();
 const inventariosStore = useCatalogoTransferenciaStore();
 const router = useRouter();
-
+const { showSuccess, showError, showConfirm } = useNotifications();
 // Estado reactivo
 const loading = computed(() => inventariosStore.isLoading());
 const catalogosTransferencia = computed(() => inventariosStore.getCatalogosTransferencia());
@@ -218,17 +219,39 @@ function editarCatalogo(id) {
 }
 
 async function eliminarCatalogo(id) {
-  if (confirm('¿Está seguro que desea eliminar este catálogo de transferencia?')) {
-    const eliminado = await inventariosStore.deleteCatalogoTransferencia(id);
-    if (eliminado) {
-      // Recargar la lista después de eliminar
-      await cargarCatalogos();
+  const confirmed = await showConfirm({
+    title: 'Confirmar eliminación',
+    message: '¿Está seguro que desea eliminar este catálogo de transferencia?',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    confirmColor: 'error'
+  });
+
+  if (confirmed) {
+    try {
+      const eliminado = await inventariosStore.deleteCatalogoTransferencia(id);
+      if (eliminado) {
+        showSuccess('Catálogo de transferencia eliminado correctamente');
+        // Recargar la lista después de eliminar
+        await cargarCatalogos();
+      } else {
+        showError('No se pudo eliminar el catálogo de transferencia');
+      }
+    } catch (error) {
+      console.error('Error al eliminar catálogo:', error);
+      showError('Error al eliminar el catálogo de transferencia: ' + error.message);
     }
   }
 }
 
 async function descargarCatalogo(id, formato = 'pdf') {
-  await inventariosStore.downloadInventario(id, formato);
+  try {
+    await inventariosStore.downloadInventario(id, formato);
+    showSuccess(`Catálogo descargado correctamente en formato ${formato.toUpperCase()}`);
+  } catch (error) {
+    console.error('Error al descargar catálogo:', error);
+    showError('Error al descargar el catálogo: ' + error.message);
+  }
 }
 
 // Métodos auxiliares

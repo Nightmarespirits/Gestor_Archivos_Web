@@ -7,6 +7,7 @@
     </div>
   </div>
   <router-view v-else />
+  <GlobalNotifications />
 </template>
 
 <script setup>
@@ -14,6 +15,7 @@ import { onBeforeMount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
 import { useUserPermissionsStore } from '@/store/userPermissions';
+import GlobalNotifications from '@/components/common/GlobalNotifications.vue';
 
 const authStore = useAuthStore();
 const permissionStore = useUserPermissionsStore();

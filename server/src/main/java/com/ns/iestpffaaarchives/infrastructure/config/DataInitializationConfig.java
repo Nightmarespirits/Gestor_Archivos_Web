@@ -62,9 +62,6 @@ public class DataInitializationConfig {
             // Initialize roles
             initializeRoles();
             
-            // Create admin user if it doesn't exist
-            createAdminUser();
-            
             // Create superadmin user if it doesn't exist
             createSuperadminUser();
             
@@ -116,36 +113,6 @@ public class DataInitializationConfig {
             roleRepository.save(role);
         }
     }
-
-    private void createAdminUser() {
-        
-        if (!userService.existsByUsername("admin")) {
-
-            String rawPassword = "92jd$s?P*";
-            String encodedPassword = passwordEncoder.encode(rawPassword);
-            
-            User adminUser = new User();
-            adminUser.setUsername("admin");
-            adminUser.setPassword(encodedPassword);
-            adminUser.setEmail("admin@iestpffaa.edu.pe");
-            adminUser.setFullName("Administrator");
-            adminUser.setStatus(true);
-            
-            // Set admin role
-            roleRepository.findByName(RoleEnum.SUPERADMIN.name())
-                .ifPresent(adminUser::setRole);
-            
-            User savedUser = userService.createUser(adminUser);
-            log.info("Admin user created successfully with ID: {}", savedUser.getId());
-        } else {
-            userService.getUserByUsername("admin").ifPresent(adminUser -> {
-                String newEncodedPassword = passwordEncoder.encode("92jd$s?P*");
-                adminUser.setPassword(newEncodedPassword);
-                userService.updateUser(adminUser);
-            });
-        }
-    }
-
     private void createSuperadminUser() {
         log.info("Checking for superadmin user...");
         if (!userService.existsByUsername(superUsername)) {

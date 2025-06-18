@@ -8,7 +8,7 @@
         rel="noopener"
         class="footer-link"
       >
-        NightmareSpirits
+        ns
       </a>
     </span>
   </v-footer>
