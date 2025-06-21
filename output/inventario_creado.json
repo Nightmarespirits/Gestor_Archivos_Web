@@ -1,5 +1,0 @@
-{
-    "timestamp": "2025-05-30T18:28:09.752086339",
-    "message": "Ocurrió un error inesperado",
-    "error": "could not execute statement [Field 'unidad_administrativa' doesn't have a default value] [insert into inventarios_generales (creador_id,estado,estado_conservacion,fecha_creacion,fecha_final,fecha_inicial,fecha_modificacion,fecha_transferencia,firma_sello_autoridad_entrega,firma_sello_autoridad_recibe,lugar_fecha_entrega,lugar_fecha_recepcion,numero_año_remision,observaciones,ruta_archivo,seccion,titulo,total_volumen,unidad_organizacion,usuario_modificacion_id,version) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)]"
-}
