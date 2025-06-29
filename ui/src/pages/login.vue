@@ -68,8 +68,8 @@ import { useAuthStore } from '@/store/auth';
 import { useTheme } from 'vuetify';
 
 const authStore = useAuthStore();
-const username = ref('');
-const password = ref('');
+const username = ref(import.meta.env.VITE_USE_MOCK === 'true' ? 'demo' : '');
+const password = ref(import.meta.env.VITE_USE_MOCK === 'true' ? 'demo' : '');
 const loading = ref(false);
 const showPassword = ref(false);
 const showErrors = ref(false);

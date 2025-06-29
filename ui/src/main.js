@@ -35,4 +35,17 @@ async function initializeApp() {
   app.mount('#app');
 }
 
-initializeApp();
+// Arranque con mocks en modo demo
+async function bootstrap() {
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    const { worker } = await import('./mocks/browser');
+    await worker.start({
+      // MSW 1.3.2: Configuración más permisiva para data:URLs
+      onUnhandledRequest: 'bypass',
+      serviceWorker: { url: '/mockServiceWorker.js' }
+    });
+    console.log('[MSW] Mock Service Worker iniciado');
+  }
+  await initializeApp();
+}
+bootstrap();
