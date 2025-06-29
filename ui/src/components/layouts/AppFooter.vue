@@ -1,14 +1,14 @@
 <template>
   <v-footer app class="pa-3 text-center d-flex flex-column modern-footer" style="font-size: 0.9em;">
     <span>
-       {{ new Date().getFullYear() }} IESTPFFAA &copy; Made by
+       {{ new Date().getFullYear() }} &copy; Made by
       <a
         href="https://github.com/NightmareSpirits"
         target="_blank"
         rel="noopener"
         class="footer-link"
       >
-        ns
+        T. Clider R.
       </a>
     </span>
   </v-footer>

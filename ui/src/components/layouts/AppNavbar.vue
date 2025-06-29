@@ -5,7 +5,7 @@
       <v-icon>{{ rail ? 'mdi-menu-open' : 'mdi-menu' }}</v-icon>
     </v-btn>
 
-    <v-toolbar-title>Archivos IESTPFFAA</v-toolbar-title>
+    <v-toolbar-title>Gestor de Archivos</v-toolbar-title>
 
     <v-spacer></v-spacer>
 

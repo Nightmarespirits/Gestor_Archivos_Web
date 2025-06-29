@@ -105,7 +105,7 @@ export const reportService = {
 
     // Crear un nuevo libro de Excel
     const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'IESTPFFAA';
+    workbook.creator = 'User';
     workbook.created = new Date();
     
     // Agregar una hoja de trabajo

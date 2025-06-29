@@ -2,8 +2,8 @@
   <div class="login-bg-centered v-theme--light">
     <div class="login-card-ref">
       <img
-        src="/IESTPFFAA_logo.png"
-        alt="IESTPFFAA Logo"
+        src="/file_managment.png"
+        alt="Gestor de archivos Logo"
         class="login-logo-ref"
       />
       <div class="login-title-ref">INICIAR SESIÓN</div>
