@@ -43,7 +43,6 @@
 
       <!-- Buscar Documentos - Visible para cualquiera con DOCUMENT_READ -->
       <v-list-item 
-        v-if="hasPermission('DOCUMENT_READ')" 
         prepend-icon="mdi-text-box-search-outline" 
         title="Buscar Documentos" 
         value="search_docs" 
@@ -54,7 +53,6 @@
 
       <!-- Gestión Documentos - Visible para roles que pueden crear/editar documentos -->
       <v-list-item 
-        v-if="hasPermission('DOCUMENT_CREATE') || hasPermission('DOCUMENT_UPDATE')" 
         prepend-icon="mdi-file-document-outline" 
         title="Gestión Documentos" 
         value="documents" 
@@ -63,43 +61,38 @@
         >
       </v-list-item>
 
-      <!-- Etiquetas y Tipos - Visible principalmente para administración -->
+      <!-- Etiquetas y Tipos - Visible para todos en modo demo-->
       <v-list-item 
-        v-if="hasAdminAccess" 
         prepend-icon="mdi-tag-multiple-outline" 
         title="Etiquetas y Tipos" 
         value="tags_types" 
-        to="/tags-types">
-      </v-list-item>
+        to="/tags-types"
+      ></v-list-item>
 
-      <!-- Gestión Usuarios - Visible para roles con USER_READ/UPDATE (ADMIN, MANAGER) -->
+      <!-- Inventarios - Visible para todos en modo demo -->
       <v-list-item 
-        v-if="hasPermission('USER_READ')" 
-        prepend-icon="mdi-account-group-outline" 
-        title="Gestión Usuarios" 
-        value="users" 
-        to="/users">
-      </v-list-item>
+        prepend-icon="mdi-clipboard-list-outline" 
+        title="Inventarios" 
+        value="inventarios" 
+        to="/inventarios"
+      ></v-list-item>
 
       <!-- Historial Actividades - Visible para permisos administrativos o AUDIT_LOG_VIEW -->
       <v-list-item 
-        v-if="hasPermission('AUDIT_LOG_VIEW') || hasAdminAccess" 
         prepend-icon="mdi-history" 
         title="Historial Actividades" 
         value="history" 
-        to="/activity-logs">
-      </v-list-item>
+        to="/activity-logs"
+      ></v-list-item>
 
-      <!-- Accesos y Controles - Solo para SUPERADMIN (ROLE_MANAGE, SYSTEM_CONFIG) -->
+      <!-- Permisos y Control de Acceso - Visible para todos en modo demo -->
       <v-list-item 
-        v-if="hasPermission('ROLE_MANAGE')" 
-        prepend-icon="mdi-security" 
-        title="Accesos y Controles" 
-        value="access" 
-        to="/access-control">
-      </v-list-item>
+        prepend-icon="mdi-shield-account" 
+        title="Control de Acceso" 
+        value="access_control" 
+        to="/access-control"
+      ></v-list-item>
       <v-list-item
-        v-if="hasPermission('ROLE_MANAGE')" 
         prepend-icon="mdi-bookshelf"
         title="Catálogo Transferencia"
         value="catalogo_transferencia"

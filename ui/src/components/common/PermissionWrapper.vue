@@ -63,9 +63,10 @@ const hasRole = computed(() => {
   });
 });
 
-// Acceso final - todas las condiciones deben ser verdaderas
+// Acceso final - DEMO MODE: siempre se concede acceso
 const hasAccess = computed(() => {
-  return hasPermission.value && hasAllRequiredPermissions.value && hasRole.value;
+  // Se ignoran todas las restricciones para la demo
+  return true;
 });
 
 onMounted(() => {

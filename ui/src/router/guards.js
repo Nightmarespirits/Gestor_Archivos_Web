@@ -81,27 +81,19 @@ export function createAuthGuard(router, piniaInstance) {
         }
       }
 
-      // 1. Verificar Permisos Requeridos
+      // 1. Verificar Permisos Requeridos - DEMO MODE: Siempre permitir acceso
       if (requiredPermissions.length > 0) {
-        // Usamos hasAnyPermission: el usuario debe tener AL MENOS UNO de los permisos listados
-        const hasRequiredPermission = permissionStore.hasAnyPermission(requiredPermissions);
-        if (!hasRequiredPermission) {
-           console.log(`[AuthGuard] Denied access to "${to.path}". Missing permissions. Required: ${requiredPermissions.join(', ')}`);
-           return next({ name: 'Unauthorized' });
-        }
+        // DEMO MODE: Bypass de verificación de permisos
+        console.log(`[AuthGuard] DEMO MODE: Access granted to "${to.path}" bypassing permission check for: ${requiredPermissions.join(', ')}`);
+        // No verificamos permisos en modo demo
       }
 
-      // 2. Verificar Roles Requeridos
+      // 2. Verificar Roles Requeridos - DEMO MODE: Siempre permitir acceso
       if (requiredRoles.length > 0) {
+        // DEMO MODE: Bypass de verificación de roles
         const userRoleName = getNormalizedUserRoleName(user.value?.role);
-        const normalizedRequiredRoles = requiredRoles.map(r => r.toUpperCase().replace(/^ROLE_/, ''));
-
-        // Permitir si el usuario tiene AL MENOS UNO de los roles requeridos
-        const hasRequiredRole = normalizedRequiredRoles.includes(userRoleName);
-        if (!userRoleName || !hasRequiredRole) {
-          console.log(`[AuthGuard] Denied access to "${to.path}". Missing role. Required: ${requiredRoles.join(', ')}, User has: ${userRoleName}`);
-          return next({ name: 'Unauthorized' });
-        }
+        console.log(`[AuthGuard] DEMO MODE: Access granted to "${to.path}" bypassing role check. Required: ${requiredRoles.join(', ')}, User has: ${userRoleName}`);
+        // No verificamos roles en modo demo
       }
     }
 

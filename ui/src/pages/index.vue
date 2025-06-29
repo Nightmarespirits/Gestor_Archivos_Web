@@ -1,5 +1,18 @@
 <template>
   <v-container fluid>
+    <!-- Alerta de Modo Demo -->
+    <v-alert
+      color="warning"
+      icon="mdi-information-outline"
+      title="Modo Demostración"
+      class="mb-4"
+      border="start"
+      elevation="2"
+    >
+      <strong>¡ATENCIÓN!</strong> Esta es una versión demostrativa del Sistema gestor de Archivos. 
+      La mayoría de las características visibles no están completamente funcionales en este modo y 
+      son solo para fines de demostración. No se realizarán operaciones reales en la base de datos.
+    </v-alert>
 
     <!-- Acciones rápidas -->
     <v-row class="mb-4">
